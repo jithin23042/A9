@@ -1,0 +1,50 @@
+MODIFIED / EVENT PUBLISHER INJECTION
+Source path (relative to ZIP root): sm-shop/src/main/java/com/salesmanager/shop/store/controller/order/facade/OrderFacadeImpl.java
+Verified source line range: 155-166
+
+ 155 | 
+ 156 | 	@Autowired
+ 157 | 	private CustomerPopulator customerPopulator;
+ 158 | 
+ 159 | 	@Autowired
+ 160 | 	private TransactionService transactionService;
+ 161 | 
+ 162 | 	@Autowired
+ 163 | 	private ApplicationEventPublisher eventPublisher;
+ 164 | 
+ 165 | 	@Inject
+ 166 | 	private EmailTemplatesUtils emailTemplatesUtils;
+
+MODIFIED / ORDER-STATUS HISTORY CALL AND EVENT PUBLICATION
+Source path (relative to ZIP root): sm-shop/src/main/java/com/salesmanager/shop/store/controller/order/facade/OrderFacadeImpl.java
+Verified source line range: 1629-1657
+
+1629 | 	@Override
+1630 | 	public void updateOrderStatus(Order order, OrderStatus newStatus, MerchantStore store) {
+1631 | 
+1632 | 		OrderStatus oldStatus = order.getStatus();
+1633 | 		if (oldStatus == newStatus) {
+1634 | 			return;
+1635 | 		}
+1636 | 		order.setStatus(newStatus);
+1637 | 		OrderStatusHistory history = new OrderStatusHistory();
+1638 | 
+1639 | 		String oldStatusName = oldStatus == null ? "" : oldStatus.name();
+1640 | 		history.setComments( messages.getMessage("email.order.status.changed", new String[] {oldStatusName,
+1641 | 				newStatus.name()}, LocaleUtils.getLocale(store)));
+1642 | 		history.setCustomerNotified(0);
+1643 | 		history.setStatus(newStatus);
+1644 | 		history.setDateAdded(new Date() );
+1645 | 
+1646 | 		try {
+1647 | 			orderService.addOrderStatusHistory(order, history);
+1648 | 		} catch (ServiceException e) {
+1649 | 			throw new ServiceRuntimeException("Error while saving order status change", e);
+1650 | 		}
+1651 | 
+1652 | 		if (newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
+1653 | 			eventPublisher.publishEvent(
+1654 | 					new OrderStatusChangedEvent(this, order, oldStatus, newStatus, history.getId()));
+1655 | 		}
+1656 | 
+1657 | 	}

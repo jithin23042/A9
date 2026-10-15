@@ -1,0 +1,17 @@
+BASELINE / PAYMENT MAP REGISTRATION
+Source path (relative to ZIP root): sm-core/src/main/resources/spring/shopizer-core-modules.xml
+Verified source line range: 43-55
+
+  43 | 	<!-- Payment integration modules -->
+  44 | 	<!-- This will be removed in favor of modules autodetection See https://github.com/shopizer-ecommerce/shopizer-payment-square-starter as an example -->
+  45 | 	<util:map id="paymentModules" map-class="java.util.HashMap"
+  46 | 		key-type="java.lang.String"
+  47 | 		value-type="com.salesmanager.core.business.modules.integration.payment.model.PaymentModule">
+  48 | 		<beans:entry key="beanstream" value-ref="beanstream" />
+  49 | 		<beans:entry key="paypal-express-checkout" value-ref="paypal-ec" />
+  50 | 		<beans:entry key="moneyorder" value-ref="moneyorder" />
+  51 | 		<beans:entry key="stripe" value-ref="stripe" />
+  52 | 		<beans:entry key="stripe3" value-ref="stripe3" />
+  53 | 		<beans:entry key="braintree" value-ref="braintree" />
+  54 | 	</util:map>
+  55 | 

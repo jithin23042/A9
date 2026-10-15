@@ -1,0 +1,60 @@
+BASELINE / DROOLS OBJECT-CREATION HELPER
+Source path (relative to ZIP root): sm-core/src/main/java/com/salesmanager/core/business/configuration/DroolsBeanFactory.java
+Verified source line range: 24-79
+
+  24 | @Component
+  25 | public class DroolsBeanFactory {
+  26 | 	
+  27 | 	
+  28 | 	@Value("${config.shipping.rule.priceByDistance}")
+  29 | 	private String priceByDistance;
+  30 | 	
+  31 | 	@Value("${config.shipping.rule.shippingModuleDecision}")
+  32 | 	private String shippingDecision;
+  33 | 	
+  34 | 
+  35 |     private static final String RULES_PATH = "com/salesmanager/drools/rules/";
+  36 |     private KieServices kieServices = KieServices.Factory.get();
+  37 | 
+  38 |     private  KieFileSystem getKieFileSystem() throws IOException{
+  39 |         KieFileSystem kieFileSystem = kieServices.newKieFileSystem();
+  40 |         List<String> rules=Arrays.asList(priceByDistance,shippingDecision);
+  41 |         for(String rule:rules){
+  42 |             kieFileSystem.write(ResourceFactory.newClassPathResource(rule));
+  43 |         }
+  44 |         return kieFileSystem;
+  45 |     }
+  46 | 
+  47 |     public KieContainer getKieContainer() throws IOException {
+  48 |         getKieRepository();
+  49 | 
+  50 |         KieBuilder kb = kieServices.newKieBuilder(getKieFileSystem());
+  51 |         kb.buildAll();
+  52 | 
+  53 |         KieModule kieModule = kb.getKieModule();
+  54 | 
+  55 |         return kieServices.newKieContainer(kieModule.getReleaseId());
+  56 | 
+  57 |     }
+  58 | 
+  59 |     private void getKieRepository() {
+  60 |         final KieRepository kieRepository = kieServices.getRepository();
+  61 |         kieRepository.addKieModule(kieRepository::getDefaultReleaseId);
+  62 |     }
+  63 | 
+  64 |     public KieSession getKieSession(){
+  65 |         getKieRepository();
+  66 |         KieFileSystem kieFileSystem = kieServices.newKieFileSystem();
+  67 | 
+  68 |         kieFileSystem.write(ResourceFactory.newClassPathResource(RULES_PATH + priceByDistance));
+  69 |         kieFileSystem.write(ResourceFactory.newClassPathResource(RULES_PATH + shippingDecision));
+  70 |         
+  71 |         KieBuilder kb = kieServices.newKieBuilder(kieFileSystem);
+  72 |         kb.buildAll();
+  73 |         KieModule kieModule = kb.getKieModule();
+  74 | 
+  75 |         KieContainer kContainer = kieServices.newKieContainer(kieModule.getReleaseId());
+  76 | 
+  77 |         return kContainer.newKieSession();
+  78 | 
+  79 |     }

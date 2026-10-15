@@ -1,0 +1,67 @@
+
+classDiagram
+    class OrderStatusService {
+        -repository
+        -publisher
+        +updateStatus(orderId, newStatus) bool
+    }
+
+    class OrderRepository {
+        -orders
+        +add(order) void
+        +get(orderId) Order
+        +updateStatus(orderId, newStatus) void
+    }
+
+    class Order {
+        +orderId
+        +customerPhone
+        +status
+    }
+
+    class OrderStatusChangedEvent {
+        +orderId
+        +previousStatus
+        +newStatus
+        +customerPhone
+    }
+
+    class EventPublisher {
+        -observers
+        +subscribe(observer) void
+        +publish(event) void
+    }
+
+    class OrderStatusObserver {
+        <<abstract>>
+        +update(event) void
+    }
+
+    class OrderStatusSmsListener {
+        -provider
+        +update(event) void
+    }
+
+    class AuditObserver {
+        +events
+        +update(event) void
+    }
+
+    class SmsProvider {
+        <<abstract>>
+        +sendSms(phone, message) bool
+    }
+
+    class UnconfiguredSmsProvider {
+        +sendSms(phone, message) bool
+    }
+
+    OrderStatusService --> OrderRepository : updates orders
+    OrderStatusService --> EventPublisher : publishes events
+    OrderRepository o-- Order : stores
+    EventPublisher --> OrderStatusObserver : notifies
+    OrderStatusObserver <|-- OrderStatusSmsListener : implemented by
+    OrderStatusObserver <|-- AuditObserver : implemented by
+    OrderStatusSmsListener --> SmsProvider : delegates SMS
+    SmsProvider <|-- UnconfiguredSmsProvider : implemented by
+    EventPublisher ..> OrderStatusChangedEvent : publishes

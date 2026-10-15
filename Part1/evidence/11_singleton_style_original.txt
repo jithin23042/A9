@@ -1,0 +1,42 @@
+BASELINE / SINGLETON-STYLE INSTANCE ACCESS
+Source path (relative to ZIP root): sm-core/src/main/java/com/salesmanager/core/business/modules/cms/product/local/CmsImageFileManagerImpl.java
+Verified source line range: 39-76
+
+  39 |   private static final long serialVersionUID = 1L;
+  40 | 
+  41 |   private static final Logger LOGGER = LoggerFactory.getLogger(CmsImageFileManagerImpl.class);
+  42 | 
+  43 |   private static CmsImageFileManagerImpl fileManager = null;
+  44 | 
+  45 |   private final static String ROOT_NAME = "";
+  46 | 
+  47 |   private final static String SMALL = "SMALL";
+  48 |   private final static String LARGE = "LARGE";
+  49 | 
+  50 |   private static final String ROOT_CONTAINER = "products";
+  51 | 
+  52 |   private String rootName = ROOT_NAME;
+  53 | 
+  54 |   private LocalCacheManagerImpl cacheManager;
+  55 | 
+  56 |   @PostConstruct
+  57 |   void init() {
+  58 | 
+  59 |     this.rootName = ((CMSManager) cacheManager).getRootName();
+  60 |     LOGGER.info("init " + getClass().getName() + " setting root" + this.rootName);
+  61 | 
+  62 |   }
+  63 | 
+  64 |   public static CmsImageFileManagerImpl getInstance() {
+  65 | 
+  66 |     if (fileManager == null) {
+  67 |       fileManager = new CmsImageFileManagerImpl();
+  68 |     }
+  69 | 
+  70 |     return fileManager;
+  71 | 
+  72 |   }
+  73 | 
+  74 |   private CmsImageFileManagerImpl() {
+  75 | 
+  76 |   }

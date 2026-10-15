@@ -1,0 +1,6 @@
+Component / behavior,Original source ZIP,Modified source ZIP,Interpretation
+Original product index listener,Present,Present,IndexProductEventListener.java implements ApplicationListener<ProductEvent>
+OrderStatusChangedEvent.java,Absent,Present,New order-status event payload class exists in modified source
+OrderStatusSmsListener.java,Absent,Present,New listener consumes OrderStatusChangedEvent and calls SmsProvider.sendSms
+RazorpayPayment.java,Absent,Present,New PaymentModule implementation and XML registration
+ElectronicsProductValidator.java,Absent,Present,New business validation component; not counted as a GoF pattern

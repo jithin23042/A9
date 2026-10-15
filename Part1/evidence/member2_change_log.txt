@@ -1,0 +1,11 @@
+CHANGE LOG — PERSON 2 REVISED DELIVERABLE
+=========================================
+1. Verified source file paths and excerpt line ranges against both supplied ZIPs.
+2. Corrected/locked payment counts: PaymentModule implementation classes 7 -> 8; paymentModules map entries 6 -> 7.
+3. Verified RazorpayPayment appears only in modified source and is registered as bean `razorpay` and map key `razorpay`.
+4. Verified five root Maven modules and internal dependencies from module POMs in both ZIPs.
+5. Added readable line-numbered evidence excerpts to the report and separate source_evidence text files.
+6. Added explicit baseline-vs-modified distinction for product-indexing listener vs order-status SMS listener.
+7. Preserved qualification that source call order does not prove transaction commit.
+8. Retained conservative classifications: Singleton-style; facade-style candidate; factory/helper candidate; ElectronicsProductValidator as business validation, not GoF.
+9. Added a POM-verified dependency diagram; modules are not characterized as independently deployed microservices.

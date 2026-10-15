@@ -1,0 +1,11 @@
+Current revision prompt record
+Interaction date: 2026-10-14
+Displayed model: GPT-6
+
+User requested final corrections to A9_Person3_Instructor_Compliant_Revision.zip:
+1. Correct the validation checklist to match the individual test logs.
+2. Measure maximum function cyclomatic complexity with a suitable tool, or retain it explicitly as outstanding if unavailable.
+3. Populate llm.csv prompt/output paths only where real records exist; do not fabricate historical records.
+4. Reconcile the Excel workbook and canonical CSV files.
+
+This file records the current revision request in summarized form for provenance. It is not represented as an earlier historical prompt.

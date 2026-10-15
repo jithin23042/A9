@@ -1,0 +1,108 @@
+classDiagram
+    direction TB
+
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        PROCESSING
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+
+    class Order {
+        -String orderId
+        -String customerPhone
+        -OrderStatus status
+        +getOrderId() String
+        +getCustomerPhone() String
+        +getStatus() OrderStatus
+        +setStatus(OrderStatus status) void
+    }
+
+    class OrderRepository {
+        -Map~String, Order~ orders
+        +add(Order order) void
+        +get(String orderId) Order
+        +updateStatus(String orderId, OrderStatus status) void
+    }
+
+    class OrderStatusChangedEvent {
+        <<immutable event / record / struct>>
+        +String orderId
+        +OrderStatus previousStatus
+        +OrderStatus newStatus
+        +String customerPhone
+    }
+
+    class OrderStatusService {
+        -OrderRepository repository
+        -EventPublisher publisher
+        -Map~OrderStatus, Set~OrderStatus~~ ALLOWED_TRANSITIONS
+        +updateStatus(String orderId, OrderStatus newStatus) bool
+        -isAllowed(OrderStatus oldStatus, OrderStatus newStatus)$ bool
+    }
+
+    class EventPublisher {
+        -List~OrderStatusListener~ observers
+        +subscribe(OrderStatusListener observer) void
+        +unsubscribe(OrderStatusListener observer) void
+        +publish(OrderStatusChangedEvent event) void
+        +observerCount() size_t
+    }
+
+    class OrderStatusListener {
+        <<interface / abstract observer>>
+        <<Java/C++: OrderStatusListener | Python/JS: OrderStatusObserver>>
+        +update(OrderStatusChangedEvent event) void
+    }
+
+    class OrderStatusSmsListener {
+        -SmsProvider provider
+        +update(OrderStatusChangedEvent event) void
+    }
+
+    class AuditObserver {
+        -List~OrderStatusChangedEvent~ events
+        +update(OrderStatusChangedEvent event) void
+        +getEvents() List~OrderStatusChangedEvent~
+    }
+
+    class SmsProvider {
+        <<interface / abstract SPI>>
+        +sendSms(String phone, String message) bool
+    }
+
+    class UnconfiguredSmsProvider {
+        <<default null object>>
+        +sendSms(String phone, String message) bool
+    }
+
+    class RecordingSmsProvider {
+        <<test fixture mock>>
+        -List~String~ recipients
+        -List~String~ messages
+        -bool shouldSucceed
+        +sendSms(String phone, String message) bool
+        +getRecipients() List~String~
+        +getMessages() List~String~
+    }
+
+    OrderStatusService --> OrderRepository : persists state changes
+    OrderStatusService --> EventPublisher : dispatches qualifying domain events
+    OrderStatusService ..> OrderStatusChangedEvent : instantiates on transition
+    OrderRepository "1" o-- "0..*" Order : stores & retrieves
+    Order --> OrderStatus : holds current state
+    OrderStatusChangedEvent --> OrderStatus : encapsulates previous & new state
+
+    EventPublisher "1" o-- "0..*" OrderStatusListener : manages subscriber collection
+    EventPublisher ..> OrderStatusChangedEvent : broadcasts event to observers
+    OrderStatusListener <|.. OrderStatusSmsListener : implements (filters & notifies)
+    OrderStatusListener <|.. AuditObserver : implements (audit & verification)
+
+    OrderStatusSmsListener --> SmsProvider : delegates SMS transmission
+    SmsProvider <|.. UnconfiguredSmsProvider : default implementation (fails safely)
+    SmsProvider <|.. RecordingSmsProvider : test implementation (verifies invocations)
+
+    note for OrderStatusService "Subject Coordinator: validates transitions via state table;\nupdates repository; fires events strictly for SHIPPED and DELIVERED."
+    note for OrderStatusSmsListener "Concrete Observer: filters for fulfilment milestones;\nverifies recipient phone; delegates dispatch to SmsProvider SPI."

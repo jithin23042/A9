@@ -1,0 +1,47 @@
+MODIFIED / ORDER STATUS EVENT TYPE
+Source path (relative to ZIP root): sm-shop/src/main/java/com/salesmanager/shop/store/controller/order/events/OrderStatusChangedEvent.java
+Verified source line range: 1-43
+
+   1 | package com.salesmanager.shop.store.controller.order.events;
+   2 | 
+   3 | import java.util.UUID;
+   4 | 
+   5 | import org.springframework.context.ApplicationEvent;
+   6 | 
+   7 | import com.salesmanager.core.model.order.Order;
+   8 | import com.salesmanager.core.model.order.orderstatus.OrderStatus;
+   9 | 
+  10 | public class OrderStatusChangedEvent extends ApplicationEvent {
+  11 | 
+  12 | 	private static final long serialVersionUID = 1L;
+  13 | 
+  14 | 	private final Order order;
+  15 | 	private final OrderStatus oldStatus;
+  16 | 	private final OrderStatus newStatus;
+  17 | 	private final String transitionId;
+  18 | 
+  19 | 	public OrderStatusChangedEvent(Object source, Order order, OrderStatus oldStatus, OrderStatus newStatus,
+  20 | 			Long statusHistoryId) {
+  21 | 		super(source);
+  22 | 		this.order = order;
+  23 | 		this.oldStatus = oldStatus;
+  24 | 		this.newStatus = newStatus;
+  25 | 		this.transitionId = statusHistoryId == null ? UUID.randomUUID().toString() : statusHistoryId.toString();
+  26 | 	}
+  27 | 
+  28 | 	public Order getOrder() {
+  29 | 		return order;
+  30 | 	}
+  31 | 
+  32 | 	public OrderStatus getOldStatus() {
+  33 | 		return oldStatus;
+  34 | 	}
+  35 | 
+  36 | 	public OrderStatus getNewStatus() {
+  37 | 		return newStatus;
+  38 | 	}
+  39 | 
+  40 | 	public String getTransitionId() {
+  41 | 		return transitionId;
+  42 | 	}
+  43 | }

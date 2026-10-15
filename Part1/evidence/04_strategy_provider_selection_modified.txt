@@ -1,0 +1,28 @@
+MODIFIED / INJECTED PAYMENT PROVIDER MAP
+Source path (relative to ZIP root): sm-core/src/main/java/com/salesmanager/core/business/services/payments/PaymentServiceImpl.java
+Verified source line range: 71-76
+
+  71 | 	@Inject
+  72 | 	private CoreConfiguration coreConfiguration;
+  73 | 	
+  74 | 	@Inject
+  75 | 	@Resource(name="paymentModules")
+  76 | 	private Map<String,PaymentModule> paymentModules;
+
+MODIFIED / LOOKUP AND COMMON-CONTRACT INVOCATION
+Source path (relative to ZIP root): sm-core/src/main/java/com/salesmanager/core/business/services/payments/PaymentServiceImpl.java
+Verified source line range: 208-220
+
+ 208 | 	@Override
+ 209 | 	public void savePaymentModuleConfiguration(IntegrationConfiguration configuration, MerchantStore store) throws ServiceException {
+ 210 | 		
+ 211 | 		//validate entries
+ 212 | 		try {
+ 213 | 			
+ 214 | 			String moduleCode = configuration.getModuleCode();
+ 215 | 			PaymentModule module = paymentModules.get(moduleCode);
+ 216 | 			if(module==null) {
+ 217 | 				throw new ServiceException("Payment module " + moduleCode + " does not exist");
+ 218 | 			}
+ 219 | 			module.validateModuleConfiguration(configuration, store);
+ 220 | 			

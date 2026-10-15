@@ -1,0 +1,69 @@
+MODIFIED / ORDER FACADE CONTRACT
+Source path (relative to ZIP root): sm-shop/src/main/java/com/salesmanager/shop/store/controller/order/facade/OrderFacade.java
+Verified source line range: 25-55
+
+  25 | import com.salesmanager.shop.model.order.ShopOrder;
+  26 | import com.salesmanager.shop.model.order.history.PersistableOrderStatusHistory;
+  27 | import com.salesmanager.shop.model.order.history.ReadableOrderStatusHistory;
+  28 | import com.salesmanager.shop.model.order.transaction.ReadableTransaction;
+  29 | 
+  30 | 
+  31 | public interface OrderFacade {
+  32 | 
+  33 | 	ShopOrder initializeOrder(MerchantStore store, Customer customer, ShoppingCart shoppingCart, Language language) throws Exception;
+  34 | 	void refreshOrder(ShopOrder order, MerchantStore store, Customer customer, ShoppingCart shoppingCart, Language language) throws Exception;
+  35 | 	/** used in website **/
+  36 | 	OrderTotalSummary calculateOrderTotal(MerchantStore store, ShopOrder order, Language language) throws Exception;
+  37 | 	/** used in the API **/
+  38 | 	OrderTotalSummary calculateOrderTotal(MerchantStore store, com.salesmanager.shop.model.order.v0.PersistableOrder order, Language language) throws Exception;
+  39 | 
+  40 | 	/** process a valid order **/
+  41 | 	Order processOrder(ShopOrder order, Customer customer, MerchantStore store, Language language) throws ServiceException;
+  42 | 	/** process a valid order against an initial transaction **/
+  43 | 	Order processOrder(ShopOrder order, Customer customer, Transaction transaction, MerchantStore store, Language language) throws ServiceException;
+  44 | 	/** process a valid order submitted from the API **/
+  45 | 	Order processOrder(com.salesmanager.shop.model.order.v1.PersistableOrder order, Customer customer, MerchantStore store, Language language, Locale locale) throws ServiceException;
+  46 | 
+  47 | 
+  48 | 
+  49 | 	/** creates a working copy of customer when the user is anonymous **/
+  50 | 	Customer initEmptyCustomer(MerchantStore store);
+  51 | 	List<Country> getShipToCountry(MerchantStore store, Language language)
+  52 | 			throws Exception;
+  53 | 
+  54 | 	/**
+  55 | 	 * Get a ShippingQuote based on merchant configuration and items to be shipped
+
+MODIFIED / REPRESENTATIVE COORDINATED ORDER WORKFLOW
+Source path (relative to ZIP root): sm-shop/src/main/java/com/salesmanager/shop/store/controller/order/facade/OrderFacadeImpl.java
+Verified source line range: 1629-1657
+
+1629 | 	@Override
+1630 | 	public void updateOrderStatus(Order order, OrderStatus newStatus, MerchantStore store) {
+1631 | 
+1632 | 		OrderStatus oldStatus = order.getStatus();
+1633 | 		if (oldStatus == newStatus) {
+1634 | 			return;
+1635 | 		}
+1636 | 		order.setStatus(newStatus);
+1637 | 		OrderStatusHistory history = new OrderStatusHistory();
+1638 | 
+1639 | 		String oldStatusName = oldStatus == null ? "" : oldStatus.name();
+1640 | 		history.setComments( messages.getMessage("email.order.status.changed", new String[] {oldStatusName,
+1641 | 				newStatus.name()}, LocaleUtils.getLocale(store)));
+1642 | 		history.setCustomerNotified(0);
+1643 | 		history.setStatus(newStatus);
+1644 | 		history.setDateAdded(new Date() );
+1645 | 
+1646 | 		try {
+1647 | 			orderService.addOrderStatusHistory(order, history);
+1648 | 		} catch (ServiceException e) {
+1649 | 			throw new ServiceRuntimeException("Error while saving order status change", e);
+1650 | 		}
+1651 | 
+1652 | 		if (newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
+1653 | 			eventPublisher.publishEvent(
+1654 | 					new OrderStatusChangedEvent(this, order, oldStatus, newStatus, history.getId()));
+1655 | 		}
+1656 | 
+1657 | 	}

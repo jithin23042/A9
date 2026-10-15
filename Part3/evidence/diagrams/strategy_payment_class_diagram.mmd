@@ -1,0 +1,41 @@
+classDiagram
+    direction TB
+
+    class PaymentProcessor {
+        -Map~String, PaymentStrategy~ strategies
+        +registerStrategy(PaymentStrategy strategy) void
+        +processPayment(String provider, amount) PaymentResult
+    }
+
+    class PaymentStrategy {
+        <<interface or abstract contract>>
+        +providerKey() String
+        +pay(amount) PaymentResult
+    }
+
+    class CardPayment {
+        +providerKey() String
+        +pay(amount) PaymentResult
+    }
+
+    class UPIPayment {
+        +providerKey() String
+        +pay(amount) PaymentResult
+    }
+
+    class PaymentResult {
+        <<immutable result>>
+        +provider String
+        +amount number
+        +status String
+        +message String
+    }
+
+    PaymentProcessor o--> PaymentStrategy : registers and selects
+    PaymentStrategy <|.. CardPayment : implements
+    PaymentStrategy <|.. UPIPayment : implements
+    PaymentProcessor ..> PaymentResult : returns
+    CardPayment ..> PaymentResult : creates
+    UPIPayment ..> PaymentResult : creates
+
+    note for PaymentProcessor "Standalone Part 3 implementation only. Shopizer's RazorpayPayment is a separate Part 2 production class and is intentionally not shown here."
