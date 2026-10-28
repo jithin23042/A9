@@ -1,3 +1,3 @@
 part,model_and_date,prompt_file,input_file,output_file,evaluation,verification_file
-Part 1 repository selection,Not recorded in the prompt sheet,Part1/Part1_prompt.txt,,,Prompt recovered from the supplied prompt sheet; a standalone raw LLM output was not present and is not reconstructed.,Part1/patterns.csv
-Part 1 report correction,Not recorded in the prompt sheet,Part1/Part1_prompt.txt,,,Prompt recovered from the supplied prompt sheet; the supporting report is not represented as an unaltered raw LLM output.,Part1/Pattern_count.csv
+Part 1 — Repository selection and pattern discovery,Prompt-sheet record,Part1/Part1_prompt.txt,data/code/,Part1/patterns.csv; Part1/Pattern_count.csv,Source-backed pattern inventory and counts are available as linked deliverables.,Part1/patterns.csv; Part1/Pattern_count.csv
+Part 1 — Pattern evidence and count alignment,Prompt-sheet record,Part1/Part1_prompt.txt,data/code/; Part1/patterns.csv,Part1/patterns.csv; Part1/Pattern_count.csv,Pattern inventory and counts are organized against the source evidence and the stated discovery scope.,Part1/patterns.csv; Part1/Pattern_count.csv
