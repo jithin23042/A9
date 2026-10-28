@@ -1,0 +1,3 @@
+part,model_and_date,prompt_file,input_file,output_file,evaluation,verification_file
+Part 1 repository selection,Not recorded in the prompt sheet,Part1/Part1_prompt.txt,,,Prompt recovered from the supplied prompt sheet; a standalone raw LLM output for this interaction was not present and is not reconstructed.,Part1/evidence/README.txt
+Part 1 report correction,Not recorded in the prompt sheet,Part1/Part1_prompt.txt,,,Prompt recovered from the supplied prompt sheet; the supporting report is not represented as an unaltered raw LLM output.,Part1/supporting_report/Person2_Revised_Final_Report.docx

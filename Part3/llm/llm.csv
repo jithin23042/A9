@@ -1,0 +1,2 @@
+part,model_and_date,prompt_file,input_file,output_file,evaluation,verification_file
+Part 3 cross-language analysis and dataset revision,GPT-6; 2026-10-14 (current revision; historical interaction metadata unavailable),Part3/llm/current_revision_prompt.txt,Part3/llm/README.md,Part3/llm/current_revision_output.md,Partial — current revision artifacts are linked; historical prompts and raw outputs are unavailable and are not reconstructed. Cyclomatic complexity remains unmeasured.,Part3/evidence/validation_checklist.md

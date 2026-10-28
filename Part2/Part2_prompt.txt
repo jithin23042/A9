@@ -1,0 +1,15 @@
+# Part 2 — Prompt Record
+
+These prompt texts were recovered from the supplied 19-page `Person1_Prompts_Sheet.pdf`. The original wording is retained as recorded. Historical model outputs are not reconstructed here.
+
+## 1. Checking whether the requested changes already exist
+
+Inspect the supplied Shopizer source before I modify it. The repository is https://github.com/shopizer-ecommerce/shopizer.git, using tag/version label 3.2.7. Check whether these requirements are already implemented:
+
+1. Add Razorpay as a payment method.
+2. Require category-specific product attributes, such as a warranty for Electronics.
+3. Send SMS notifications when an order's status changes.
+
+## 2. Preparing the Part 2 report
+
+Part 1 is complete, now help me with part 2 using this template, findings, and Shopizer zip. The three changes are Razorpay payment integration, mandatory Electronics product-attribute validation, and SMS notification for order-status changes. For each, explain the requirement, existing design, proposed change, affected components, and impact on relevant patterns. Classify each pattern as preserved, modified, extended, replaced, or removed, with a reason supported by code evidence. Continue page numbering after page 8 and do not repeat part 1.

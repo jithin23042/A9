@@ -52,7 +52,7 @@ This Java implementation is a standalone demonstration of the same design princi
 
 Run commands from:
 
-`A9/Part3/Strategy_Payment/java/`
+`A9/Part3/Strategy/java/`
 
 ### Compile the implementation
 

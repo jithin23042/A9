@@ -55,7 +55,7 @@ The `PaymentProcessor` stores strategies in a dictionary indexed by provider key
 
 Run the commands from this directory:
 
-`A9/Part3/Strategy_Payment/python/`
+`A9/Part3/Strategy/python/`
 
 ### Execute the demonstration
 

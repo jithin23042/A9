@@ -1,0 +1,14 @@
+flowchart LR
+    coreModel[sm-core-model]
+    coreModules[sm-core-modules]
+    core[sm-core]
+    shopModel[sm-shop-model]
+    shop[sm-shop]
+
+    coreModules --> coreModel
+    core --> coreModel
+    core --> coreModules
+    shopModel --> coreModel
+    shop --> core
+    shop --> coreModel
+    shop --> shopModel

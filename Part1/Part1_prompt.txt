@@ -1,0 +1,11 @@
+# Part 1 — Prompt Record
+
+These prompt texts were recovered from the supplied 19-page `Person1_Prompts_Sheet.pdf`. The wording below follows the recorded prompt sheet. Historical model outputs are not reconstructed here.
+
+## 1. Finding the repository
+
+I am doing a university case study titled “Design Pattern Identification and Evolution in a Spring Boot-Based E-Commerce Application.” Find an open-source e-commerce application developed using Spring Boot. It should have accessible source code and features such as product management, cart, orders, payments, inventory, customers, notifications, and authentication. Compare suitable repositories against these requirements and recommend the best one. Support the recommendation with repository links and source evidence.
+
+## 2. Correcting the Part 1 report
+
+I have attached my Part 1 report draft, the required template, and the shopizer zip. Correct the report so that the application description, architecture, design patterns, class names, source paths, tables, and evidence match the actual project code. Follow the provided template and preserve correct content. Do not invent missing details or state a pattern not present. Give the correct document.

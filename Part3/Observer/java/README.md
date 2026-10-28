@@ -49,7 +49,7 @@ The service publishes events when an order transitions to `SHIPPED` or `DELIVERE
 
 ### 6. Compilation and Execution
 
-Run the following commands from the `Observer_Order_SMS/java` directory in Windows PowerShell.
+Run the following commands from the `Observer/java` directory in Windows PowerShell.
 
 **Compile the implementation and test files:**
 
@@ -140,7 +140,7 @@ The production LOC count excludes blank lines and comment-only lines. Test files
 | Total physical lines in `OrderStatusObserver.java` | 313 |
 | Production LOC | 234 |
 
-**Measurement command** (run from the `Observer_Order_SMS/java` directory in Windows PowerShell):
+**Measurement command** (run from the `Observer/java` directory in Windows PowerShell):
 
 ```powershell
 python ..\..\count_java_loc.py OrderStatusObserver.java

@@ -1,0 +1,3 @@
+part,model_and_date,prompt_file,input_file,output_file,evaluation,verification_file
+Part 2 baseline requirement check,Not recorded in the prompt sheet,Part2/Part2_prompt.txt,,,Prompt recovered from the supplied prompt sheet; standalone raw LLM output was not preserved and is not reconstructed.,Part2/changes/Change1/CH01_razorpay.md
+Part 2 evolution report,Not recorded in the prompt sheet,Part2/Part2_prompt.txt,,,Prompt recovered from the prompt sheet; standalone raw LLM output was not preserved and is not reconstructed.,Part2/evidence/test_results.md

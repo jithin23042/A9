@@ -2,7 +2,7 @@
 
 - Added canonical team-level `data/` folder with `patterns.csv`, `pattern_counts.csv`, `patterns_evolution.csv`, `cross_language.csv`, and `llm.csv` using exact instructor headers.
 - Rebuilt pattern records around confirmed collaborations and generated counts from the evolution record ledger; Strategy collaborations are counted once per version.
-- Added source excerpts/files under `data/code/original/` and `Part2/code/` so pattern participant source paths resolve from the team folder.
+- Added source excerpts/files under `data/code/shopizer-3.2.7/` and `Part2/code/` so pattern participant source paths resolve from the team folder.
 - Corrected the before/after analysis to use `PayPalRestPayment`, distinguish 7→8 concrete payment providers from 8→9 Strategy participant convention, and avoid unsupported post-commit SMS claims.
 - Regenerated `cross_language_comparison.xlsx` from corrected CSVs and added separate participant-role occurrence / globally unique symbol metrics.
 - Reran all eight standalone test suites in the current environment and saved stdout/stderr logs under `Part3/evidence/`.

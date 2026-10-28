@@ -58,7 +58,7 @@ The Python implementation is a standalone demonstration of the same design princ
 
 Run the commands from:
 
-`A9/Part3/Observer_Order_SMS/python/`
+`A9/Part3/Observer/python/`
 
 ### Execute the demonstration
 

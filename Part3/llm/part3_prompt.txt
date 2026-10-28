@@ -1,0 +1,36 @@
+# Part 3 — Cross-Language Prompt Record
+
+Source: `Person1_Prompts_Sheet.pdf`, supplied with the repository. Items 6–10 below are preserved prompt text. Item 5 was recorded in the sheet as a task description rather than a complete verbatim prompt, so it is labelled as a summary and not expanded into an invented historical prompt. Historical raw outputs are not reconstructed.
+
+## 1. Task summary recorded for selecting two patterns
+
+Part 3 – Cross-Language Analysis
+
+Select 2 significant patterns discovered in Parts 1–2.
+Implement the same problem using:
+- Java
+- Python
+- JavaScript
+- C++
+
+The prompt sheet also records: “Proceeded with the recommended pattern after reading through the comparisons provided.”
+
+## 2. Python implementation and common test cases
+
+Lets start with the Python implementation in VSCode. First define the expected behavior and test cases for both patterns so that we can implement the same functionality in JavaScript, Java and C++ later.
+
+## 3. JavaScript implementation
+
+Now, implement the same payment strategy and order status observer problems in JavaScript. Follow the requirements and Python test cases so that the behaviour remains consistent across languages. Include tests for the same cases and provide the commands needed to run them.
+
+## 4. Java implementation
+
+After making the UML diagram, implement the same payment strategy and order status observer problems in Java. Include the test files and exact compilation and execution commands.
+
+## 5. C++ implementation
+
+Now, implement the same payment strategy and order status observer problems in C++. Also provide the commands to run it.
+
+## 6. Cross-language verification
+
+Inspect the final implementation zip and audit both strategy payment module selection and observer order status SMS notification across Java, Python, JavaScript and C++. Check all the documents and verify the correctness.

@@ -52,7 +52,7 @@ This JavaScript implementation is a standalone demonstration of the same design 
 
 Run commands from:
 
-`A9/Part3/Strategy_Payment/javascript/`
+`A9/Part3/Strategy/javascript/`
 
 ### Execute the demonstration
 

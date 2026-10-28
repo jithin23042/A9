@@ -154,7 +154,7 @@ Tests failed: 0
 
 
 Observer/Java
-compile: javac -d /mnt/data/A9_Compliant_Revision /mnt/data/person3_work/A9/A9/Part3/Observer_Order_SMS/java/OrderStatusObserver.java /mnt/data/person3_work/A9/A9/Part3/Observer_Order_SMS/java/TestOrderStatusObserver.java
+compile: javac -d /mnt/data/A9_Compliant_Revision /mnt/data/person3_work/A9/A9/Part3/Observer/java/OrderStatusObserver.java /mnt/data/person3_work/A9/A9/Part3/Observer/java/TestOrderStatusObserver.java
 run: java -ea -cp /mnt/data/A9_Compliant_Revision A9.Part3.Observer_Order_SMS.java.TestOrderStatusObserver
 warmup exit=0
 measured_ms=51.432, 64.728, 60.087, 52.752, 53.291

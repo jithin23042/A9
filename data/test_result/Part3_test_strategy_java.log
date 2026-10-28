@@ -1,0 +1,25 @@
+Pattern: Strategy
+Language: Java
+Working directory: /mnt/data/person3_work/A9/A9/Part3/Strategy_Payment/java
+Compiler/runtime: openjdk version "21.0.12.1" 2026-08-18
+Compile command: javac PaymentStrategy.java TestPaymentStrategy.java
+Compile exit: 0
+Test command: java -ea TestPaymentStrategy
+Test exit: 0
+
+--- compile output ---
+
+--- test output ---
+PASS: card payment succeeds
+PASS: UPI payment succeeds
+PASS: provider selection is case-insensitive
+PASS: new Razorpay strategy can be registered
+PASS: duplicate provider registration is rejected
+PASS: unknown provider is rejected
+PASS: zero and negative amounts are rejected
+PASS: invalid and non-finite amounts are rejected
+PASS: invalid provider names are rejected
+PASS: invalid strategy registration is rejected
+
+Tests passed: 10
+Tests failed: 0

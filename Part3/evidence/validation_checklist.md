@@ -7,7 +7,7 @@ Status meanings: **Pass** = checked against the supplied artifacts/current execu
 | CSV exact headers and order | **Pass** | All five required CSVs use the exact required header names and order. |
 | CSV UTF-8 and one header row | **Pass** | Validated UTF-8 decoding and CSV parsing; one header row per file. |
 | patterns.csv collaboration granularity | **Pass** | One row per confirmed collaboration in Original code and Modified Part 2 snapshots. |
-| patterns.csv source evidence paths | **Pass** | Referenced Java/XML files copied into data/code/original and Part2/code; source paths are team-relative. |
+| patterns.csv source evidence paths | **Pass** | Referenced Java/XML files copied into data/code/shopizer-3.2.7 and Part2/code; source paths are team-relative. |
 | pattern_counts.csv summaries | **Pass** | Contains per_pattern, total_pattern_types and total_pattern_instances; totals generated from evolution records. |
 | patterns_evolution.csv scenarios | **Pass** | Contains baseline and Change1/Change2/Change3 records, status values from the permitted vocabulary, and three scenario descriptions. |
 | Removed-instance handling | **Pass** | No removed pattern collaboration was evidenced in the supplied snapshots; no unsupported removed row was invented. |

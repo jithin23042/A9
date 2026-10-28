@@ -64,7 +64,7 @@ The shared JavaScript LOC measurement script is stored at the Part 3 level as `c
 
 Run commands from:
 
-`A9/Part3/Observer_Order_SMS/javascript/`
+`A9/Part3/Observer/javascript/`
 
 ### Execute the demonstration
 
