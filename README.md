@@ -1,39 +1,94 @@
-# A9 — 23CSE455 Design Pattern Case Study
+# A9 — Design Pattern Identification and Evolution in Shopizer
 
-## Submission status
+**Course:** 23CSE455 Design Patterns Case Study  
+**Application:** [Shopizer](https://github.com/shopizer-ecommerce/shopizer), an open-source Spring Boot e-commerce application
 
-This repository follows the required A9 directory layout. The final combined report is unfinished; `A9_Report.tex` and `A9_Report.pdf` are intentionally not included yet. The required Part 3 slide `Part3/llm/A9_slide.pdf` was not present in the supplied materials and remains pending. No placeholder report or slide has been fabricated.
+## Case Study Overview
 
-## Application
+This repository documents design-pattern discovery in Shopizer, three software-evolution scenarios, and standalone cross-language implementations of two patterns.
 
-- Application: Shopizer e-commerce application — https://github.com/shopizer-ecommerce/shopizer
-- Original source: Shopizer 3.2.7, pinned at commit `6a4a0a65a3408ee8f62597b51d1b3aac24b77dee` as the `data/code/` submodule.
-- Part 2 changes: Razorpay payment support, Electronics warranty validation, and order-status SMS notification.
-- Part 3 patterns: Strategy (Payment Module Selection) and Observer (Order Status SMS Notification), each implemented in Java, Python, JavaScript, and C++.
+The work covers:
+- **Part 1 — Pattern Discovery:** source-backed pattern inventory, pattern counts, architecture, and source evidence.
+- **Part 2 — Software Evolution:** Razorpay payment support, category-specific Electronics warranty validation, and order-status SMS notifications.
+- **Part 3 — Cross-Language Analysis:** Strategy and Observer implementations in Java, Python, JavaScript, and C++.
 
-## Directory guide
+## Repository Structure
 
-- `data/code/`: original Shopizer source.
-- `data/test_result/`: Part 2 test summary, test commands/specification, and the eight Part 3 test logs.
-- `Part1/`: pattern inventory/count CSVs, architecture diagram source/image, prompt record, and LLM tracking CSV.
-- `Part2/code/`: evolved Shopizer source snapshot.
-- `Part2/changes/Change1/`, `Change2/`, `Change3/`: requirement/implementation, diff summary, and test result for each requested change.
-- `Part2/pattern_evolution.csv`, `Part2/Pattern_count.csv`, `Part2/diagrams/`, `Part2/Part2_prompt.txt`, and `Part2/llm.csv`: required Part 2 artifacts.
-- `Part3/Strategy/` and `Part3/Observer/`: code, test runners, and README files grouped by language.
-- `Part3/llm/`: Part 3 prompt, LLM CSV, and cross-language CSV.
+```text
+A9/
+├── README.md
+├── data/
+│   ├── code/                       Original Shopizer source (Git submodule)
+│   └── test_result/                Test logs, commands, and test specification
+├── Part1/
+│   ├── patterns.csv
+│   ├── Pattern_count.csv
+│   ├── pattern_architecture/       Diagram source and image
+│   ├── Part1_prompt.txt
+│   └── llm.csv
+├── Part2/
+│   ├── code/                       Evolved Shopizer source
+│   ├── changes/
+│   │   ├── Change1/                Razorpay payment support
+│   │   ├── Change2/                Electronics warranty validation
+│   │   └── Change3/                Order-status SMS notification
+│   ├── pattern_evolution.csv
+│   ├── Pattern_count.csv
+│   ├── diagrams/
+│   ├── Part2_prompt.txt
+│   └── llm.csv
+└── Part3/
+    ├── Strategy/                   Payment Module Selection
+    │   ├── java/
+    │   ├── python/
+    │   ├── javascript/
+    │   └── cpp/
+    ├── Observer/                   Order Status SMS Notification
+    │   ├── java/
+    │   ├── python/
+    │   ├── javascript/
+    │   └── cpp/
+    └── llm/
+        ├── part3_prompt.txt
+        ├── llm.csv
+        └── pattern_crosslanguage.csv
+```
 
-## Verification and limits
+Each language folder contains its implementation, test runner, and README with execution instructions. UML and flow diagrams are stored with the corresponding pattern or evolution evidence. The canonical cross-language comparison workbook is included under `Part3/llm/`.
 
-- The eight supplied Part 3 logs each report 10/10 tests passed (80/80 overall).
-- Part 2 focused implementation/regression tests report 26 passed, 0 failures, 0 errors, and 0 skipped.
-- The broader baseline and after-code Maven runs each retain one `UnexpectedRollbackException` in the existing `ProductTest.testCreateProduct` / `testInsertImage` path. See `data/test_result/Part2_test_results.md`; these broader runs are not described as full-suite passes.
-- The project targets Java 11, but recorded Part 2 tests used JDK 25 because JDK 11 was unavailable. Runtime compatibility on Java 11 remains unverified.
-- Razorpay and SMS tests use mocks/simulations; no live payment or actual SMS delivery was performed.
-- `max_function_cc` remains blank because a validated comparable complexity measurement was not completed. Blank does not mean zero.
-- Historical raw LLM outputs that were not preserved are not reconstructed.
+## Original and Evolved Source
 
-## Pending before final submission
+The original Shopizer source is linked as a Git submodule in `data/code/`, pinned to commit `6a4a0a65a3408ee8f62597b51d1b3aac24b77dee` from the [Shopizer repository](https://github.com/shopizer-ecommerce/shopizer).
 
-1. Add `A9_Report.tex` and `A9_Report.pdf` when the report is complete.
-2. Add `Part3/llm/A9_slide.pdf` if required by the evaluator; it was not supplied for this task.
-3. Add genuine test screenshots only if required and available. The current repository contains test logs rather than screenshots.
+The evolved source snapshot is under `Part2/code/`. The three change directories describe the requirement and implementation, provide a file-level diff summary, and record focused test results.
+
+Clone the repository with the original source submodule initialized:
+
+```bash
+git clone --recurse-submodules https://github.com/jithin23042/A9.git
+```
+
+If the repository was already cloned without submodules, initialize it with:
+
+```bash
+git submodule update --init --recursive
+```
+
+## Verification Summary
+
+- **Part 3:** eight standalone test logs report 10/10 passing tests each (80/80 total).
+- **Part 2 focused tests:** 26 passed, 0 failures, 0 errors, and 0 skipped.
+- **Broader Maven tests:** the recorded baseline and evolved-source runs each retain one `UnexpectedRollbackException` in the existing `ProductTest.testCreateProduct` / `testInsertImage` path. See `data/test_result/Part2_test_results.md`; these broader runs are not reported as full-suite passes.
+- **Runtime compatibility:** the project targets Java 11, while the recorded Part 2 tests used JDK 25 because JDK 11 was unavailable. Java 11 runtime compatibility was not verified.
+- **External services:** Razorpay and SMS behaviors are tested using mocks or simulations. No live payment or actual SMS delivery was performed.
+- **Cyclomatic complexity:** `max_function_cc` is blank because a comparable complexity measurement was not completed; a blank value does not mean zero.
+- **LLM provenance:** historical raw model outputs that were not preserved are not recreated or presented as original transcripts.
+
+## Key Data Files
+
+- `Part1/patterns.csv` — source-backed pattern inventory.
+- `Part1/Pattern_count.csv` — pattern counts for discovery.
+- `Part2/pattern_evolution.csv` — pattern-evolution records across the changes.
+- `Part2/Pattern_count.csv` — counts associated with the evolution analysis.
+- `Part3/llm/pattern_crosslanguage.csv` — cross-language implementation and measurement dataset.
+- `Part3/llm/cross_language_comparison.xlsx` — workbook for reviewing the comparison data.
