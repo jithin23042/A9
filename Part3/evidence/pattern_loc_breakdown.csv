@@ -1,9 +1,0 @@
-Pattern,Language,Source_File,Physical_Lines,Production_LOC,Comment_Lines,Blank_Lines,Test_File,Test_Physical_Lines,Test_LOC,Tests_Passed,Tests_Failed,Pass_Rate,Max_Function_CC,Primary_Abstraction
-Strategy (Payment),Python,payment_strategy.py,124,80,10,34,test_payment_strategy.py,114,75,10,0,1.0,7,ABC (PaymentStrategy)
-Strategy (Payment),C++,payment_strategy.cpp,109,98,0,11,test_payment_strategy.cpp,65,61,10,0,1.0,5,Pure Virtual Class (PaymentStrategy)
-Strategy (Payment),Java,PaymentStrategy.java,131,101,5,25,TestPaymentStrategy.java,174,143,10,0,1.0,4,Interface (PaymentMethod)
-Strategy (Payment),JavaScript,payment_strategy.js,141,107,9,25,test_payment_strategy.js,136,107,10,0,1.0,7,Class with thrown Errors (PaymentStrategy)
-Observer (Order SMS),Python,order_status_observer.py,230,151,16,63,test_order_status_observer.py,194,141,10,0,1.0,5,"ABC (OrderStatusObserver, SmsProvider)"
-Observer (Order SMS),C++,order_status_observer.cpp,186,170,0,16,test_order_status_observer.cpp,88,84,10,0,1.0,8,"Pure Virtual Classes (OrderStatusListener, SmsProvider)"
-Observer (Order SMS),JavaScript,order_status_observer.js,262,201,14,47,test_order_status_observer.js,213,158,10,0,1.0,5,"Classes with error stubs (OrderStatusObserver, SmsProvider)"
-Observer (Order SMS),Java,OrderStatusObserver.java,313,234,14,65,TestOrderStatusObserver.java,163,137,10,0,1.0,6,"Interfaces (OrderStatusListener, SmsProvider)"

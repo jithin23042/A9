@@ -1,6 +1,6 @@
 # Part 3 — Cross-Language Prompt Record
 
-Source: `Person1_Prompts_Sheet.pdf`, supplied with the repository. Items 6–10 below are preserved prompt text. Item 5 was recorded in the sheet as a task description rather than a complete verbatim prompt, so it is labelled as a summary and not expanded into an invented historical prompt. Historical raw outputs are not reconstructed.
+Source: `Person1_Prompts_Sheet.pdf`, supplied with the project materials. The following text was recovered from that sheet. Historical raw LLM outputs are not reconstructed.
 
 ## 1. Task summary recorded for selecting two patterns
 
@@ -34,3 +34,7 @@ Now, implement the same payment strategy and order status observer problems in C
 ## 6. Cross-language verification
 
 Inspect the final implementation zip and audit both strategy payment module selection and observer order status SMS notification across Java, Python, JavaScript and C++. Check all the documents and verify the correctness.
+
+## 7. Current revision request record
+
+A separate summarized prompt dated 2026-10-14 requested the following final checks: reconcile the validation checklist with individual test logs; measure maximum function cyclomatic complexity or retain it as explicitly unmeasured if the tool was unavailable; populate LLM CSV paths only where real prompt/output records exist; and reconcile the Excel workbook with canonical CSV data. This is a summary/provenance record, not a verbatim historical transcript.
