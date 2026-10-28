@@ -1,0 +1,29 @@
+%% Verified against ElectronicsProductValidator.java and its call sites.
+flowchart TD
+    Init["InitializationDatabaseImpl.createElectronicsCategory()<br/>creates category code: electronics"]
+
+    Create["Product create/update<br/>PersistableProductMapper"]
+    Definition["Product-definition mapping<br/>PersistableProductDefinitionMapper"]
+    Attribute["Product attribute update<br/>ProductOptionFacadeImpl"]
+
+    Create -->|"Electronics branch"| Validate["ElectronicsProductValidator.validate(product)"]
+    Definition --> Validate
+    Attribute --> Validate
+
+    Validate --> Category{"Category code = electronics?"}
+    Category -- "No" --> Normal["Continue through existing non-Electronics path"]
+    Category -- "Yes" --> Brand{"Manufacturer exists and code is nonblank<br/>and not DEFAULT?"}
+    Brand -- "No" --> Reject["Raise ConversionRuntimeException"]
+    Brand -- "Yes" --> Warranty{"Exactly one attribute has option code<br/>warranty_period?"}
+    Warranty -- "No" --> Reject
+    Warranty -- "Yes" --> Months{"At least one option-value description name<br/>is a whole number from 1 to 120 months?"}
+    Months -- "No" --> Reject
+    Months -- "Yes" --> Save["Continue through existing persistence path"]
+
+    Init -. "seeds the category used by the category-code check" .-> Category
+
+    %% Source details:
+    %% ElectronicsProductValidator.java: isElectronics, validate, isWarrantyAttribute, hasValidWarrantyMonths
+    %% PersistableProductMapper.java: Electronics attribute mapping + validation branch
+    %% PersistableProductDefinitionMapper.java: validator call
+    %% ProductOptionFacadeImpl.java: validate merged/existing product attributes before save

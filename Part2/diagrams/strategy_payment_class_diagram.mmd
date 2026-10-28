@@ -1,41 +1,66 @@
+%% Verified against the Part 2 Shopizer source:
+%% sm-core-modules/.../PaymentModule.java
+%% sm-core/.../PaymentServiceImpl.java
+%% sm-core/src/main/resources/spring/shopizer-core-modules.xml
+%% sm-core/.../RazorpayPayment.java
 classDiagram
-    direction TB
+    direction LR
 
-    class PaymentProcessor {
-        -Map~String, PaymentStrategy~ strategies
-        +registerStrategy(PaymentStrategy strategy) void
-        +processPayment(String provider, amount) PaymentResult
+    class PaymentModule {
+        <<interface>>
+        +validateModuleConfiguration(...)
+        +initTransaction(...)
+        +authorize(...)
+        +authorizeAndCapture(...)
+        +capture(...)
+        +refund(...)
     }
 
-    class PaymentStrategy {
-        <<interface or abstract contract>>
-        +providerKey() String
-        +pay(amount) PaymentResult
+    class PaymentServiceImpl {
+        -Map~String, PaymentModule~ paymentModules
+        +getPaymentModule(String paymentModuleCode) PaymentModule
     }
 
-    class CardPayment {
-        +providerKey() String
-        +pay(amount) PaymentResult
+    class PaymentModulesMap {
+        <<Spring XML util:map>>
+        +beanstream
+        +paypal-express-checkout
+        +moneyorder
+        +stripe
+        +stripe3
+        +braintree
+        +razorpay
     }
 
-    class UPIPayment {
-        +providerKey() String
-        +pay(amount) PaymentResult
+    class RazorpayPayment {
+        -RestTemplate restTemplate
+        +validateModuleConfiguration(...)
+        +initTransaction(...)
+        +authorize(...)
+        +authorizeAndCapture(...)
+        +capture(...)
+        +refund(...)
+        -verifyCheckout(...)
+        -verifySignature(...)
     }
 
-    class PaymentResult {
-        <<immutable result>>
-        +provider String
-        +amount number
-        +status String
-        +message String
-    }
+    class BeanStreamPayment
+    class PayPalExpressCheckoutPayment
+    class MoneyOrderPayment
+    class StripePayment
+    class Stripe3Payment
+    class BraintreePayment
 
-    PaymentProcessor o--> PaymentStrategy : registers and selects
-    PaymentStrategy <|.. CardPayment : implements
-    PaymentStrategy <|.. UPIPayment : implements
-    PaymentProcessor ..> PaymentResult : returns
-    CardPayment ..> PaymentResult : creates
-    UPIPayment ..> PaymentResult : creates
+    PaymentServiceImpl ..> PaymentModulesMap : injected as paymentModules
+    PaymentServiceImpl --> PaymentModule : looks up implementation by module code
+    PaymentModule <|.. RazorpayPayment : implements
+    PaymentModule <|.. BeanStreamPayment : implements
+    PaymentModule <|.. PayPalExpressCheckoutPayment : implements
+    PaymentModule <|.. MoneyOrderPayment : implements
+    PaymentModule <|.. StripePayment : implements
+    PaymentModule <|.. Stripe3Payment : implements
+    PaymentModule <|.. BraintreePayment : implements
+    PaymentModulesMap ..> RazorpayPayment : key razorpay / bean razorpay
 
-    note for PaymentProcessor "Standalone Part 3 implementation only. Shopizer's RazorpayPayment is a separate Part 2 production class and is intentionally not shown here."
+    note for PaymentModulesMap "Registered keys are read from shopizer-core-modules.xml. The map is configuration, not a Java class."
+    note for RazorpayPayment "Uses RestTemplate for Razorpay API requests; verifies checkout signature and gateway payment details before creating transactions."
