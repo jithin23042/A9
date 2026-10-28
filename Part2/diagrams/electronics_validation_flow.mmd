@@ -20,7 +20,7 @@ flowchart TD
     Months -- "No" --> Reject
     Months -- "Yes" --> Save["Continue through existing persistence path"]
 
-    Init -. "seeds the category used by the category-code check" .-> Category
+    Init -. seeds category code electronics .-> Category
 
     %% Source details:
     %% ElectronicsProductValidator.java: isElectronics, validate, isWarrantyAttribute, hasValidWarrantyMonths
