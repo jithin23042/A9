@@ -1,0 +1,707 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1.8cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\arraystretch}{1.2}
+\graphicspath{{figs/}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small Shopizer 3.2.7}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% small helper for table text
+\newcommand{\tsmall}{\small\setlength{\tabcolsep}{3pt}}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\sloppy
+\begin{document}
+
+%====================== TITLE ======================
+\begin{center}
+  {\LARGE\bfseries 23CSE455 Design Patterns\par}
+  \vspace{0.3cm}
+  {\Large\bfseries Case Study Report\par}
+\end{center}
+
+\textbf{Team:} A9\\
+\textbf{Case study:} E-Commerce Application using Spring Boot\\
+\textbf{Application:} Shopizer --- open-source e-commerce platform\\
+\textbf{Date:} 2026-09-03\\
+\textbf{Submission repository:} 23CSE455\_DP\_CaseStudy
+
+\subsection*{Students}
+\begin{center}
+\tsmall
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Roll number} & \textbf{Student name} & \textbf{Batch}\\
+\midrule
+AM.SC.U4CSE23003 & Abhijith S & CSE - A\\
+AM.SC.U4CSE23005 & Abhinav G Nair & CSE - A\\
+AM.SC.U4CSE23042 & Jithin Jyothi & CSE - A\\
+AM.SC.U4CSE23044 & Krishnapriya P & CSE - A\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%====================== 1 ======================
+\section{Application and architecture}
+
+\textbf{Original source:} \url{https://github.com/shopizer-ecommerce/shopizer}; tag 3.2.7\\
+\textbf{Baseline commit:} \texttt{6a4a0a65a3408ee8f62597b51d1b3aac24b77dee}\\
+\textbf{Access date:} 2026-09-03\\
+\textbf{Licence:} Apache License 2.0
+
+\textbf{Environment:} Java 11; Spring Boot 2.5.12; Apache Maven; Spring Data JPA/Hibernate; the local profile configures MySQL; application port 8080.
+
+\textbf{Scope:} Five Maven modules:
+\begin{itemize}[nosep]
+  \item \texttt{sm-core-model}
+  \item \texttt{sm-core-modules}
+  \item \texttt{sm-core}
+  \item \texttt{sm-shop-model}
+  \item \texttt{sm-shop}
+\end{itemize}
+Focus: payment/shipping integration, product events/search indexing, order facade coordination, security group construction, and CMS image management.
+
+\textbf{Exclusions:} framework internals and candidates not supported by application-level source evidence.
+
+\textbf{Architecture:}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\textwidth]{img1.png}
+  \caption*{Architecture overview of Shopizer.}
+\end{figure}
+
+Shopizer follows a modular monolith architecture built using Spring Boot and Maven. The \texttt{sm-shop} module acts as the application entry point, handling REST APIs, controllers, facades, and security. The \texttt{sm-core} module manages business logic and repositories, while \texttt{sm-core-model} contains domain entities, \texttt{sm-shop-model} contains shop-specific models, and \texttt{sm-core-modules} provides integrations such as payment and shipping. The application uses a relational database for persistent storage, Elasticsearch for search, Infinispan for caching, and JWT for security. External services provide payment, shipping, and other integrations where configured.
+
+\textbf{Request flow:} Client to \texttt{sm-shop} to business services in \texttt{sm-core} to database or external integrations. Product events can also trigger listeners to update search indexing.
+
+\textbf{Run instructions:}
+\texttt{.\allowbreak{}/\allowbreak{}mvnw clean install; cd sm-\allowbreak{}shop; .\allowbreak{}.\allowbreak{}/\allowbreak{}mvnw spring-\allowbreak{}boot:run}; then use \url{http://localhost:8080/swagger-ui.html}. README path: \texttt{README.md} (repository root). These are documented instructions.
+
+%====================== 2 ======================
+\section{Part 1 Pattern discovery}
+
+\textbf{Method:} Inspected application interfaces, concrete implementations, service dispatch points, event publishers/listeners, facade methods, construction helpers, and explicit instance-management code. Confirmed patterns require identifiable source roles and relationships; Spring-only behavior is excluded unless an application-level collaboration is independently evidenced.
+
+\subsection{Totals at the baseline}
+
+\textbf{Confirmed pattern types:} 5 --- Strategy, Observer, Facade, Builder, Singleton.
+
+\textbf{Confirmed pattern instances:} 6 --- payment module selection; shipping quote module selection; product events to search indexing; order-processing coordination; security-group construction; CMS product image file manager.
+
+\textbf{Concrete participant classes:} 41 participant occurrences across the six instances (8 + 8 + 12 + 8 + 4 + 1). A participant is a class or interface with a source-evidenced role in the pattern; interfaces are counted, while methods, Spring framework types, enums and unrelated injected dependencies are not.
+
+\textbf{Unique participant symbols:} 41 distinct fully qualified class/interfaces. Methods are not counted as symbols. No class takes part in more than one instance, so unique symbols equal participant occurrences. Classes that share a simple name but sit in different packages (the two \texttt{Cms\allowbreak{}Image\allowbreak{}File\allowbreak{}Manager\allowbreak{}Impl} types and the two \texttt{Order\allowbreak{}Facade}/\texttt{Order\allowbreak{}Facade\allowbreak{}Impl} types) are distinguished by fully qualified name.
+
+\textbf{Rejected and uncertain candidates:} 10 register entries (Section~\ref{sec:records}): 1 rejected (order-status Observer); 5 not counted as confirmed application-level patterns (Adapter, Factory, Proxy, Spring default singleton scope, category creation); and 4 elements verified in the source but excluded from participant counts (\texttt{Pay\allowbreak{}Pal\allowbreak{}Rest\allowbreak{}Payment}, \texttt{canadapost}, \texttt{Product\allowbreak{}Attribute\allowbreak{}Event} and the infinispan \texttt{Cms\allowbreak{}Image\allowbreak{}File\allowbreak{}Manager\allowbreak{}Impl}). No candidate is left uncertain.
+
+\subsection{Pattern inventory}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{1.6cm}P{2.6cm}P{1.2cm}P{7.2cm}P{1.5cm}@{}}
+\toprule
+\textbf{Pattern type} & \textbf{Instance name} & \textbf{Inst.} & \textbf{Participant classes/interfaces} & \textbf{Count}\\
+\midrule
+\endhead
+Strategy & Payment Module Selection & 1 & \texttt{Payment\allowbreak{}Module}; \texttt{Payment\allowbreak{}Service\allowbreak{}Impl}; \texttt{Bean\allowbreak{}Stream\allowbreak{}Payment}; \texttt{Money\allowbreak{}Order\allowbreak{}Payment}; \texttt{Pay\allowbreak{}Pal\allowbreak{}Express\allowbreak{}Checkout\allowbreak{}Payment}; \texttt{Stripe\allowbreak{}Payment}; \texttt{Stripe3Payment}; \texttt{Braintree\allowbreak{}Payment} & 8\\
+Strategy & Shipping Quote Module Selection & 1 & \texttt{Shipping\allowbreak{}Quote\allowbreak{}Module}; \texttt{Shipping\allowbreak{}Service\allowbreak{}Impl}; \texttt{USPSShipping\allowbreak{}Quote}; \texttt{UPSShipping\allowbreak{}Quote}; \texttt{Custom\allowbreak{}Weight\allowbreak{}Based\allowbreak{}Shipping\allowbreak{}Quote}; \texttt{Store\allowbreak{}Pickup\allowbreak{}Shipping\allowbreak{}Quote}; \texttt{Price\allowbreak{}By\allowbreak{}Distance\allowbreak{}Shipping\allowbreak{}Quote\allowbreak{}Rules}; \texttt{Custom\allowbreak{}Shipping\allowbreak{}Quote\allowbreak{}Rules} & 8\\
+Observer & Product Events to Search Indexing & 1 & \texttt{Publish\allowbreak{}Product\allowbreak{}Aspect}; \texttt{Product\allowbreak{}Image\allowbreak{}Service\allowbreak{}Impl}; \texttt{Product\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Variant\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Variant\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Image\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Image\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Attribute\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Attribute\allowbreak{}Event}; \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} & 12\\
+Facade & Order Processing Coordination & 1 & \texttt{Order\allowbreak{}Facade}; \texttt{Order\allowbreak{}Facade\allowbreak{}Impl}; \texttt{Order\allowbreak{}Service}; \texttt{Shopping\allowbreak{}Cart\allowbreak{}Service}; \texttt{Shipping\allowbreak{}Quote\allowbreak{}Service}; \texttt{Customer\allowbreak{}Facade}; \texttt{Shopping\allowbreak{}Cart\allowbreak{}Facade}; \texttt{Email\allowbreak{}Templates\allowbreak{}Utils} & 8\\
+Builder & Security Group Construction & 1 & \texttt{Security\allowbreak{}Groups\allowbreak{}Builder}; \texttt{Group}; \texttt{Permission}; \texttt{Initialization\allowbreak{}Database\allowbreak{}Impl} & 4\\
+Singleton & CMS Product Image File Manager & 1 & \texttt{Cms\allowbreak{}Image\allowbreak{}File\allowbreak{}Manager\allowbreak{}Impl} (cms.product.local) & 1\\
+\midrule
+\textbf{Total} & \textbf{5 pattern types} & \textbf{6} & \textbf{41 participant occurrences = 41 unique fully qualified symbols} & \textbf{41}\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\subsection{One record for each pattern instance}\label{sec:records}
+
+%---------- 1 ----------
+\subsubsection*{1. Payment Module Selection}
+\textbf{Instance name:} Payment Module Selection\\
+\textbf{Pattern type and category:} Strategy --- GoF behavioural pattern\\
+\textbf{Purpose and origin:} Selects a payment implementation by module key and invokes payment operations through the \texttt{Payment\allowbreak{}Module} abstraction; implementations are wired through Shopizer Spring configuration.
+
+\textbf{Participant mapping}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{2.6cm}P{5.6cm}P{7.9cm}@{}}
+\toprule
+\textbf{Pattern role} & \textbf{Actual class, interface and function} & \textbf{File and line range}\\
+\midrule
+\endhead
+Strategy (interface) & \texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}modules.\allowbreak{}integration.\allowbreak{}payment.\allowbreak{}model.\allowbreak{}PaymentModule} & \texttt{sm-\allowbreak{}core-\allowbreak{}modules/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}modules/\allowbreak{}integration/\allowbreak{}payment/\allowbreak{}model/\allowbreak{}PaymentModule.\allowbreak{}java:16-\allowbreak{}-\allowbreak{}54}\\
+Context / selector & \texttt{Payment\allowbreak{}Service\allowbreak{}Impl}; \texttt{payment\allowbreak{}Modules} map & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}services/\allowbreak{}payments/\allowbreak{}PaymentServiceImpl.\allowbreak{}java:52-\allowbreak{}-\allowbreak{}53, 74-\allowbreak{}-\allowbreak{}76, 352-\allowbreak{}-\allowbreak{}378, 433-\allowbreak{}-\allowbreak{}449, 505, 727-\allowbreak{}-\allowbreak{}735}\\
+Concrete strategies (6) & \texttt{Bean\allowbreak{}Stream\allowbreak{}Payment}; \texttt{Money\allowbreak{}Order\allowbreak{}Payment}; \texttt{Pay\allowbreak{}Pal\allowbreak{}Express\allowbreak{}Checkout\allowbreak{}Payment}; \texttt{Stripe\allowbreak{}Payment}; \texttt{Stripe3Payment}; \texttt{Braintree\allowbreak{}Payment} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}resources/\allowbreak{}spring/\allowbreak{}shopizer-\allowbreak{}core-\allowbreak{}modules.\allowbreak{}xml:45-\allowbreak{}-\allowbreak{}54, 77-\allowbreak{}-\allowbreak{}88}; classes in \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}modules/\allowbreak{}integration/\allowbreak{}payment/\allowbreak{}impl/\allowbreak{}} (declarations at lines 45, 24, 61, 39, 41, 30 respectively)\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Evidence:} \texttt{Payment\allowbreak{}Service\allowbreak{}Impl} retrieves a \texttt{Payment\allowbreak{}Module} with \texttt{paymentModules.\allowbreak{}get(payment.\allowbreak{}getModuleName())} (line 352), throws a \texttt{Service\allowbreak{}Exception} if the module does not exist, and calls \texttt{authorize}, \texttt{authorize\allowbreak{}And\allowbreak{}Capture} or \texttt{init\allowbreak{}Transaction} according to the transaction type (lines 374--378). The capture, refund and init flows select the module from the order's payment-module code (lines 433, 505, 727) and call \texttt{capture} (449) and \texttt{init\allowbreak{}Transaction} (735, 773). The \texttt{payment\allowbreak{}Modules} map is declared in \texttt{shopizer-\allowbreak{}core-\allowbreak{}modules.\allowbreak{}xml} and binds six provider keys to concrete beans.
+
+\textbf{Verification:} Confirmed. Run-time key-based selection and polymorphic invocation through a shared interface are visible. Participants: 8 (1 interface, 1 context, 6 concrete strategies).
+
+\textbf{Limitations:} \texttt{Pay\allowbreak{}Pal\allowbreak{}Rest\allowbreak{}Payment} implements \texttt{Payment\allowbreak{}Module} but is not registered in the \texttt{payment\allowbreak{}Modules} map and is not referenced elsewhere, so it is excluded. Modules supplied by external starters (\texttt{Modules\allowbreak{}Configuration} injects a \texttt{List<Payment\allowbreak{}Module>}) are not in the supplied source. The value-type attribute of the \texttt{payment\allowbreak{}Modules} map in the XML names \texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}business.\allowbreak{}modules.\allowbreak{}integration.\allowbreak{}payment.\allowbreak{}model.\allowbreak{}PaymentModule}, which does not match the actual interface package (\texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}modules.\allowbreak{}integration.\allowbreak{}payment.\allowbreak{}model}).
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{img2.png}
+\end{figure}
+\textbf{Diagram:} \textit{Figure 1. Payment Module Selection: \texttt{Payment\allowbreak{}Service\allowbreak{}Impl} selects a \texttt{Payment\allowbreak{}Module} by key; six concrete modules realize the interface.}
+
+%---------- 2 ----------
+\subsubsection*{2. Shipping Quote Module Selection}
+\textbf{Instance name:} Shipping Quote Module Selection\\
+\textbf{Pattern type and category:} Strategy --- GoF behavioural pattern\\
+\textbf{Purpose and origin:} Delegates shipping-quote calculation to a selected \texttt{Shipping\allowbreak{}Quote\allowbreak{}Module} implementation.
+
+\textbf{Participant mapping}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{2.6cm}P{5.6cm}P{7.9cm}@{}}
+\toprule
+\textbf{Pattern role} & \textbf{Actual class, interface and function} & \textbf{File and line range}\\
+\midrule
+\endhead
+Strategy (interface) & \texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}modules.\allowbreak{}integration.\allowbreak{}shipping.\allowbreak{}model.\allowbreak{}ShippingQuoteModule} & \texttt{sm-\allowbreak{}core-\allowbreak{}modules/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}modules/\allowbreak{}integration/\allowbreak{}shipping/\allowbreak{}model/\allowbreak{}ShippingQuoteModule.\allowbreak{}java:19-\allowbreak{}-\allowbreak{}26}\\
+Context / selector & \texttt{Shipping\allowbreak{}Service\allowbreak{}Impl}; \texttt{shipping\allowbreak{}Modules} map & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}services/\allowbreak{}shipping/\allowbreak{}ShippingServiceImpl.\allowbreak{}java:65, 103-\allowbreak{}-\allowbreak{}105, 459-\allowbreak{}-\allowbreak{}472, 544-\allowbreak{}-\allowbreak{}551, 563}\\
+Concrete strategies (6) & \texttt{USPSShipping\allowbreak{}Quote}; \texttt{UPSShipping\allowbreak{}Quote}; \texttt{Custom\allowbreak{}Weight\allowbreak{}Based\allowbreak{}Shipping\allowbreak{}Quote}; \texttt{Store\allowbreak{}Pickup\allowbreak{}Shipping\allowbreak{}Quote}; \texttt{Price\allowbreak{}By\allowbreak{}Distance\allowbreak{}Shipping\allowbreak{}Quote\allowbreak{}Rules}; \texttt{Custom\allowbreak{}Shipping\allowbreak{}Quote\allowbreak{}Rules} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}resources/\allowbreak{}spring/\allowbreak{}shopizer-\allowbreak{}core-\allowbreak{}modules.\allowbreak{}xml:20-\allowbreak{}-\allowbreak{}35, 58-\allowbreak{}-\allowbreak{}69}; classes in \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}modules/\allowbreak{}integration/\allowbreak{}shipping/\allowbreak{}impl/\allowbreak{}} (declarations at lines 57, 50, 35, 40, 37, 34 respectively)\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Evidence:} \texttt{Shipping\allowbreak{}Service\allowbreak{}Impl} holds the \texttt{shipping\allowbreak{}Modules} map (lines 103--105). In \texttt{get\allowbreak{}Shipping\allowbreak{}Quote} it iterates the merchant's configured modules, takes the first active one that is not a \texttt{Shipping\allowbreak{}Quote\allowbreak{}Pre\allowbreak{}Post\allowbreak{}Process\allowbreak{}Module} (lines 459--472) and calls \texttt{getShippingQuotes(.\allowbreak{}.\allowbreak{}.\allowbreak{})} on it (line 563). A pre-processor may change the current module, in which case the implementation is looked up again in the map (lines 544--551). Other methods use the same map for validation and custom configuration (lines 159--163, 242--246).
+
+\textbf{Verification:} Confirmed as Strategy. It is not classified as Adapter because no target/adaptee/wrapper relationship is demonstrated. Participants: 8 (1 interface, 1 context, 6 concrete strategies).
+
+\textbf{Limitations:} The map also holds the key \texttt{canadapost}, bound to a bean from an external starter whose source is not in the archive; it is excluded. \texttt{Store\allowbreak{}Pickup\allowbreak{}Shipping\allowbreak{}Quote} also implements \texttt{Shipping\allowbreak{}Quote\allowbreak{}Pre\allowbreak{}Post\allowbreak{}Process\allowbreak{}Module}, so the default selection loop skips it and it is reached only through pre-processor re-selection. The XML value-type attribute names a package that does not match the actual interface package.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{img3.png}
+\end{figure}
+\textbf{Diagram:} \textit{Figure 2. Shipping Quote Module Selection: \texttt{Shipping\allowbreak{}Service\allowbreak{}Impl} selects a \texttt{Shipping\allowbreak{}Quote\allowbreak{}Module}; six concrete modules realize the interface.}
+
+%---------- 3 ----------
+\subsubsection*{3. Product Events to Search Indexing}
+\textbf{Instance name:} Product Events to Search Indexing\\
+\textbf{Pattern type and category:} Observer --- GoF behavioural pattern using Spring application events\\
+\textbf{Purpose and origin:} Separates product, variant, image, and attribute changes from the listener that updates search indexing.
+
+\textbf{Participant mapping}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{2.4cm}P{6.2cm}P{7.5cm}@{}}
+\toprule
+\textbf{Pattern role} & \textbf{Actual class, interface and function} & \textbf{File and line range}\\
+\midrule
+\endhead
+Publisher / aspect & \texttt{Publish\allowbreak{}Product\allowbreak{}Aspect} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}configuration/\allowbreak{}events/\allowbreak{}products/\allowbreak{}PublishProductAspect.\allowbreak{}java:34-\allowbreak{}-\allowbreak{}36, 55-\allowbreak{}-\allowbreak{}74, 78-\allowbreak{}-\allowbreak{}97, 101-\allowbreak{}-\allowbreak{}140}\\
+Publisher / service & \texttt{Product\allowbreak{}Image\allowbreak{}Service\allowbreak{}Impl} (publishes image events directly) & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}services/\allowbreak{}catalog/\allowbreak{}product/\allowbreak{}image/\allowbreak{}ProductImageServiceImpl.\allowbreak{}java:93, 180}\\
+Event abstraction & \texttt{Product\allowbreak{}Event} (abstract) and its 8 subclasses: \texttt{Save\allowbreak{}Product\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Variant\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Variant\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Image\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Image\allowbreak{}Event}; \texttt{Save\allowbreak{}Product\allowbreak{}Attribute\allowbreak{}Event}; \texttt{Delete\allowbreak{}Product\allowbreak{}Attribute\allowbreak{}Event} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}configuration/\allowbreak{}events/\allowbreak{}products/\allowbreak{}ProductEvent.\allowbreak{}java:7-\allowbreak{}-\allowbreak{}22}; each subclass declared at line 5 or 6 of its file\\
+Observer / listener & \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}configuration/\allowbreak{}events/\allowbreak{}products/\allowbreak{}listeners/\allowbreak{}IndexProductEventListener.\allowbreak{}java:39-\allowbreak{}-\allowbreak{}96, 124-\allowbreak{}-\allowbreak{}146}\\
+Action collaborators (not counted) & \texttt{Search\allowbreak{}Service}; \texttt{Product\allowbreak{}Service} & Listener file: lines 42--46, 130, 142\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Evidence:} \texttt{Publish\allowbreak{}Product\allowbreak{}Aspect} publishes \texttt{Save\allowbreak{}Product\allowbreak{}Event}, \texttt{Delete\allowbreak{}Product\allowbreak{}Event} and the variant, image and attribute event types through Spring's \texttt{Application\allowbreak{}Event\allowbreak{}Publisher} after the matching service methods run. \texttt{Product\allowbreak{}Image\allowbreak{}Service\allowbreak{}Impl} publishes the image events directly (lines 93, 180); the comment at line 92 calls this a workaround because the aspect does not fire. \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} implements \texttt{Application\allowbreak{}Listener<Product\allowbreak{}Event>} (line 40), is skipped when \texttt{search.noindex} is true (line 58), dispatches by event subtype (lines 60--90) and calls \texttt{Search\allowbreak{}Service.index} or \texttt{delete\allowbreak{}Document} (lines 130, 142, 169, 195, 225, 282, 306). Events are delivered on a separate thread (\texttt{AsynchronousEventsConfiguration.\allowbreak{}java:17-\allowbreak{}-\allowbreak{}24}).
+
+\textbf{Verification:} Confirmed for product-event/search-index synchronization as a framework-mediated Observer (publish--subscribe) using Spring application events. It does not establish an order-status Observer. Participants: 12 (2 publishers, 9 event classes, 1 listener).
+
+\textbf{Limitations:} The subject and observer interfaces come from Spring; the application supplies the publishers, event types and listener, and there is a single listener. \texttt{delete\allowbreak{}Product\allowbreak{}Image} does not re-index (lines 232--235). \texttt{Product\allowbreak{}Attribute\allowbreak{}Event} is declared but never published or handled and is excluded.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{img4.png}
+\end{figure}
+\textbf{Diagram:} \textit{Figure 3. Product events: two publishers create \texttt{Product\allowbreak{}Event} subclasses and publish them through Spring; \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} updates the search index.}
+
+%---------- 4 ----------
+\subsubsection*{4. Order Processing Coordination}
+\textbf{Instance name:} Order Processing Coordination\\
+\textbf{Pattern type and category:} Facade --- GoF structural pattern\\
+\textbf{Purpose and origin:} Provides a higher-level order workflow API and coordinates underlying services for the shop/API layer.
+
+\textbf{Participant mapping}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{2.6cm}P{5.2cm}P{8.3cm}@{}}
+\toprule
+\textbf{Pattern role} & \textbf{Actual class, interface and function} & \textbf{File and line range}\\
+\midrule
+\endhead
+Facade interface & \texttt{com.\allowbreak{}salesmanager.\allowbreak{}shop.\allowbreak{}store.\allowbreak{}controller.\allowbreak{}order.\allowbreak{}facade.\allowbreak{}OrderFacade} & \texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}store/\allowbreak{}controller/\allowbreak{}order/\allowbreak{}facade/\allowbreak{}OrderFacade.\allowbreak{}java:31-\allowbreak{}-\allowbreak{}205}\\
+Facade implementation & \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} & \texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}store/\allowbreak{}controller/\allowbreak{}order/\allowbreak{}facade/\allowbreak{}OrderFacadeImpl.\allowbreak{}java:113-\allowbreak{}-\allowbreak{}114; fields 118-\allowbreak{}-\allowbreak{}171}\\
+Subsystem collaborators (6) & \texttt{Order\allowbreak{}Service}; \texttt{Shopping\allowbreak{}Cart\allowbreak{}Service}; \texttt{Shipping\allowbreak{}Quote\allowbreak{}Service}; \texttt{Customer\allowbreak{}Facade}; \texttt{Shopping\allowbreak{}Cart\allowbreak{}Facade}; \texttt{Email\allowbreak{}Templates\allowbreak{}Utils} & \texttt{Order\allowbreak{}Facade\allowbreak{}Impl.java}: processOrder(v1) 1196--1359 --- shoppingCartService 1212; shippingQuoteService 1255; orderService 1273, 1328; customerFacade 1319; shoppingCartFacade 1333; notify $\rightarrow$ emailTemplatesUtils 1343, 1361--1380\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Evidence:} \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} (\texttt{@Service\allowbreak{}("order\allowbreak{}Facade")}) implements \texttt{Order\allowbreak{}Facade}. Its \texttt{processOrder(PersistableOrder, .\allowbreak{}.\allowbreak{}.\allowbreak{})} method validates the arguments, maps the request with \texttt{Persistable\allowbreak{}Order\allowbreak{}Api\allowbreak{}Populator}, loads the cart (\texttt{Shopping\allowbreak{}Cart\allowbreak{}Service}, line 1212), obtains the shipping summary (\texttt{Shipping\allowbreak{}Quote\allowbreak{}Service}, 1255), calculates totals and persists the order (\texttt{Order\allowbreak{}Service}, 1273 and 1328), checks the customer (\texttt{Customer\allowbreak{}Facade}, 1319), updates the cart (\texttt{Shopping\allowbreak{}Cart\allowbreak{}Facade}, 1333) and sends confirmation e-mails through \texttt{notify} (\texttt{Email\allowbreak{}Templates\allowbreak{}Utils}, 1365--1377). The older \texttt{processOrder(ShopOrder, .\allowbreak{}.\allowbreak{}.\allowbreak{})} overloads delegate to \texttt{process\allowbreak{}Order\allowbreak{}Model}, which calls \texttt{OrderService.\allowbreak{}processOrder} (lines 551--553).
+
+\textbf{Verification:} Confirmed as a facade-style subsystem entry point. Core business rules stay in the services. Participants: 8 (facade interface, facade implementation, 6 subsystem collaborators).
+
+\textbf{Limitations:} The class is large (1,648 lines) and also performs mapping and validation. \texttt{Payment\allowbreak{}Service}, \texttt{Shipping\allowbreak{}Service} and \texttt{Transaction\allowbreak{}Service} are used in other methods (for example \texttt{capture\allowbreak{}Order}, line 1418) but outside the order-placement flow counted here, as is the \texttt{Persistable\allowbreak{}Order\allowbreak{}Api\allowbreak{}Populator} mapper. A different class named \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} (\texttt{com.\allowbreak{}salesmanager.\allowbreak{}shop.\allowbreak{}store.\allowbreak{}facade.\allowbreak{}order}, implementing the v1 \texttt{Order\allowbreak{}Facade}) is not counted.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{img5.png}
+\end{figure}
+\textbf{Diagram:} \textit{Figure 4. \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} realizes \texttt{Order\allowbreak{}Facade} and coordinates six subsystem collaborators in the order-placement flow.}
+
+%---------- 5 ----------
+\subsubsection*{5. Security Group Construction}
+\textbf{Instance name:} Security Group Construction\\
+\textbf{Pattern type and category:} Builder --- GoF creational pattern (fluent builder)\\
+\textbf{Purpose and origin:} Builds groups and permissions through chained configuration operations before returning the completed list.
+
+\textbf{Participant mapping}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{2.4cm}P{5.8cm}P{7.9cm}@{}}
+\toprule
+\textbf{Pattern role} & \textbf{Actual class, interface and function} & \textbf{File and line range}\\
+\midrule
+\endhead
+Builder & \texttt{Security\allowbreak{}Groups\allowbreak{}Builder} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}utils/\allowbreak{}SecurityGroupsBuilder.\allowbreak{}java:15-\allowbreak{}-\allowbreak{}74}\\
+Build operations & \texttt{add\allowbreak{}Group\allowbreak{}(String,\allowbreak{} Group\allowbreak{}Type)}; \texttt{add\allowbreak{}Permission\allowbreak{}(String)}; \texttt{add\allowbreak{}Permission\allowbreak{}(Permission)}; \texttt{build()} & Same file: lines 21--30, 32--49, 51--68, 70--72\\
+Product objects & \texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}model.\allowbreak{}user.\allowbreak{}Group}; \texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}model.\allowbreak{}user.\allowbreak{}Permission} (\texttt{GroupType} is an enum argument and is not counted) & \texttt{Group} constructed at \texttt{SecurityGroupsBuilder.\allowbreak{}java:23} (addGroup; also 36 and 56 in the empty-list fallback); \texttt{Permission} constructed at line 44 (addPermission(String)); types in \texttt{sm-\allowbreak{}core-\allowbreak{}model/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}model/\allowbreak{}user/\allowbreak{}}\\
+Usage site & \texttt{Initialization\allowbreak{}Database\allowbreak{}Impl} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}services/\allowbreak{}reference/\allowbreak{}init/\allowbreak{}InitializationDatabaseImpl.\allowbreak{}java:50, 172-\allowbreak{}-\allowbreak{}238}\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Evidence:} \texttt{addGroup} creates a \texttt{Group}, sets its name and type, adds it to the internal list and returns the builder (lines 21--30). \texttt{add\allowbreak{}Permission} attaches a \texttt{Permission} to the most recently added group and returns the builder (lines 32--68). \texttt{build()} returns the assembled \texttt{List<Group>} (70--72). \texttt{Initialization\allowbreak{}Database\allowbreak{}Impl} creates the builder (line 172), chains \texttt{addGroup}/\texttt{add\allowbreak{}Permission} calls to define eight groups --- SUPERADMIN, ADMIN, ADMIN\_RETAILER, ADMIN\_STORE, ADMIN\_CATALOGUE, ADMIN\_ORDER, ADMIN\_CONTENT and CUSTOMER (173--234) --- and persists each group returned by \texttt{build()} through \texttt{group\allowbreak{}Service.create} (236--238).
+
+\textbf{Verification:} Confirmed as a fluent Builder. It is a small builder and should not be overstated as a complex immutable-object builder. Participants: 4 (builder, 2 constructed types, 1 usage site).
+
+\textbf{Limitations:} There is no abstract builder or director, and only one usage site. If \texttt{add\allowbreak{}Permission} is called before any group has been added, \texttt{groups.get\allowbreak{}(0)} fails on the empty list (lines 34, 54) and the following null check is unreachable.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{img6.png}
+\end{figure}
+\textbf{Diagram:} \textit{Figure 5. Security Group Construction: \texttt{Initialization\allowbreak{}Database\allowbreak{}Impl} chains \texttt{Security\allowbreak{}Groups\allowbreak{}Builder} calls to assemble \texttt{Group} and \texttt{Permission} objects.}
+
+%---------- 6 ----------
+\subsubsection*{6. CMS Product Image File Manager}
+\textbf{Instance name:} CMS Product Image File Manager\\
+\textbf{Pattern type and category:} Singleton --- GoF creational pattern (explicit, lazy initialization)\\
+\textbf{Purpose and origin:} Provides a static accessor to one lazily created CMS image manager instance.
+
+\textbf{Participant mapping}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{2.6cm}P{5.4cm}P{8.1cm}@{}}
+\toprule
+\textbf{Pattern role} & \textbf{Actual class, interface and function} & \textbf{File and line range}\\
+\midrule
+\endhead
+Singleton class / accessor & \texttt{Cms\allowbreak{}Image\allowbreak{}File\allowbreak{}Manager\allowbreak{}Impl} (\texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}business.\allowbreak{}modules.\allowbreak{}cms.\allowbreak{}product.\allowbreak{}local}) & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}modules/\allowbreak{}cms/\allowbreak{}product/\allowbreak{}local/\allowbreak{}CmsImageFileManagerImpl.\allowbreak{}java:33-\allowbreak{}-\allowbreak{}34, 64-\allowbreak{}-\allowbreak{}72}\\
+Instance state & Static \texttt{file\allowbreak{}Manager} field & Same file: line 43\\
+Private constructor & \texttt{Cms\allowbreak{}Image\allowbreak{}File\allowbreak{}Manager\allowbreak{}Impl\allowbreak{}()} & Same file: lines 74--76\\
+Usage (Spring factory-method) & Bean \texttt{httpd\allowbreak{}Product\allowbreak{}Assets\allowbreak{}Manager} & \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}resources/\allowbreak{}spring/\allowbreak{}shopizer-\allowbreak{}core-\allowbreak{}cms.\allowbreak{}xml:118-\allowbreak{}-\allowbreak{}124}; selection through \texttt{\$\{config.\allowbreak{}cms.\allowbreak{}method\}ProductAssetsManager} at lines 30--40\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Evidence:} The static field \texttt{file\allowbreak{}Manager} (line 43) holds the single instance. \texttt{get\allowbreak{}Instance\allowbreak{}()} creates the object only when the field is null and then returns it (lines 66--70). The constructor is private (74--76). A search of the source found no Java call sites for \texttt{get\allowbreak{}Instance\allowbreak{}()}; its only use is Spring's \texttt{factory-\allowbreak{}method="getInstance"} on the \texttt{httpd\allowbreak{}Product\allowbreak{}Assets\allowbreak{}Manager} bean (\texttt{shopizer-\allowbreak{}core-\allowbreak{}cms.\allowbreak{}xml:118-\allowbreak{}-\allowbreak{}124}).
+
+\textbf{Verification:} Confirmed as an explicit lazy Singleton (implementation evidence); usage evidence is indirect, through Spring XML. The unsynchronised null check makes it not thread-safe as written. Participants: 1.
+
+\textbf{Limitations:} The bean is selected only when \texttt{config.\allowbreak{}cms.\allowbreak{}method=httpd}. The default method uses \texttt{infinispan.\allowbreak{}CmsImageFileManagerImpl}, which has the identical structure (lines 48, 81--94; XML 92--98); it is verified but not counted. The class also implements \texttt{Product\allowbreak{}Assets\allowbreak{}Manager}, which is not a Singleton role.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{img7.png}
+\end{figure}
+\textbf{Diagram:} \textit{Figure 6. \texttt{Cms\allowbreak{}Image\allowbreak{}File\allowbreak{}Manager\allowbreak{}Impl}: static instance field, private constructor and lazy \texttt{get\allowbreak{}Instance\allowbreak{}()}, invoked through Spring's factory-method.}
+
+%---------- Rejected ----------
+\subsubsection*{Rejected and uncertain candidates}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{3.6cm}P{3.2cm}P{9.3cm}@{}}
+\toprule
+\textbf{Candidate} & \textbf{Disposition} & \textbf{Reason / evidence limitation}\\
+\midrule
+\endhead
+Adapter --- shipping integrations & Not counted as confirmed & Shipping implementations use \texttt{Shipping\allowbreak{}Quote\allowbreak{}Module} directly; no distinct target/adaptee/wrapper collaboration was demonstrated.\\
+Factory --- generic object creation & Not counted as confirmed & Spring bean wiring or ordinary object construction alone does not establish a canonical Factory pattern.\\
+Proxy --- Spring-generated service proxies & Not counted as application-level GoF instance & Framework AOP/proxy behavior is not counted as a Shopizer-authored Proxy without an explicit application collaboration.\\
+Singleton --- default Spring bean scope & Not counted & Framework lifecycle convention; only explicit application-level instance management is counted.\\
+Observer --- order-status notification & Rejected for current baseline & No order-status event publisher or listener exists in the supplied source: \texttt{publish\allowbreak{}Event} is called only for product events, and the only application listeners are \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} and \texttt{Server\allowbreak{}Config}. The confirmed Observer is product events to search indexing.\\
+Category creation as evolution change & Not a Part 1 pattern candidate & Shopizer already implements category creation/update; this is not pattern evidence by itself.\\
+\texttt{Pay\allowbreak{}Pal\allowbreak{}Rest\allowbreak{}Payment} as a payment Strategy & Excluded from participant counts & Implements \texttt{Payment\allowbreak{}Module} but is not registered in the \texttt{payment\allowbreak{}Modules} map or \texttt{shopizer-\allowbreak{}core-\allowbreak{}modules.\allowbreak{}xml} and has no other references, so \texttt{Payment\allowbreak{}Service\allowbreak{}Impl} cannot select it.\\
+\texttt{canadapost} shipping module & Excluded from participant counts & Key present in the \texttt{shipping\allowbreak{}Modules} map (\texttt{shopizer-\allowbreak{}core-\allowbreak{}modules.\allowbreak{}xml:23}) but the bean comes from an external starter whose source is not in the archive.\\
+\texttt{Product\allowbreak{}Attribute\allowbreak{}Event} & Excluded from participant counts & Declared in \texttt{events/products} but never published or handled; the aspect publishes \texttt{Save\allowbreak{}Product\allowbreak{}Attribute\allowbreak{}Event} and \texttt{Delete\allowbreak{}Product\allowbreak{}Attribute\allowbreak{}Event} instead.\\
+\texttt{infinispan.\allowbreak{}CmsImageFileManagerImpl} & Verified & Same lazy Singleton structure as the local class (lines 48, 81--94) and used by the default CMS method; excluded so that the inventory keeps one instance per row.\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+%====================== 3 ======================
+\section{Part 2 Evolution and refactoring}
+
+\subsection*{CH01 --- Razorpay payment integration}
+
+\textbf{Change and acceptance criteria:} Requirement: introduce Razorpay as an additional payment option without replacing any existing payment integration and without a dependency upgrade. Acceptance criteria: (1) Razorpay is a \texttt{Payment\allowbreak{}Module} implementation registered under its own key in the existing payment-module mechanism; (2) the six existing registered modules (beanstream, paypal-express-checkout, moneyorder, stripe, stripe3, braintree) remain registered; (3) \texttt{Payment\allowbreak{}Service\allowbreak{}Impl} selects the module by key with no Razorpay-specific branch; (4) no dependency version is changed. A live Razorpay transaction is not an acceptance criterion and is not claimed.
+
+\textbf{Before and after:} Before: baseline commit \texttt{6a4a0a65a3408ee8f62597b51d1b3aac24b77dee}. After: commit \texttt{9d4f923e83d0658b4935f24ff1bb61692ae720c3}.
+
+\textbf{Changed source:} \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}modules/\allowbreak{}integration/\allowbreak{}payment/\allowbreak{}impl/\allowbreak{}RazorpayPayment.\allowbreak{}java} (class declaration at line 47, implementing \texttt{Payment\allowbreak{}Module}); registration under the key \texttt{razorpay} in \texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}resources/\allowbreak{}spring/\allowbreak{}shopizer-\allowbreak{}core-\allowbreak{}modules.\allowbreak{}xml} (map entry at line 54, bean declaration at line 99). The six original entries remain at lines 48--53.
+
+\textbf{Implementation and tests:} What changed: \texttt{Razorpay\allowbreak{}Payment} was added as an implementation of the existing \texttt{Payment\allowbreak{}Module} abstraction and registered through the existing Spring payment-module mechanism; existing payment infrastructure was reused where applicable; no dependency was upgraded.
+
+Run command: \texttt{.\allowbreak{}\textbackslash mvnw.\allowbreak{}cmd -\allowbreak{}pl sm-\allowbreak{}core -\allowbreak{}am "-\allowbreak{}Dtest=RazorpayPaymentTest" "-\allowbreak{}Dsurefire.\allowbreak{}failIfNoSpecifiedTests=false" test}. Actual test result: \texttt{Razorpay\allowbreak{}Payment\allowbreak{}Test}, 9 tests, 0 failures, 0 errors, 0 skipped (Surefire report). No live Razorpay transaction is evidenced or claimed.
+
+\textbf{Pattern effects:} Payment Module Selection --- extended. \texttt{Razorpay\allowbreak{}Payment} is added to the existing \texttt{Payment\allowbreak{}Module} / \texttt{Payment\allowbreak{}Service\allowbreak{}Impl} collaboration; the selector and the six existing registered providers are preserved. Shipping Quote Module Selection is unaffected.
+
+\textbf{Refactoring:} None. CH01 is a feature addition.
+
+\textbf{Before/after metrics:} Source LOC scope: Java files under \texttt{src/main/java} and \texttt{src/test/java} in \texttt{sm-core-model}, \texttt{sm-core-modules}, \texttt{sm-core}, \texttt{sm-shop-model} and \texttt{sm-shop}, counting code-bearing lines (blank and comment-only lines excluded) with one Python scanner applied to each commit archive. Main source: 72,018 LOC in 1,167 files before; 72,363 LOC in 1,168 files after (+345 LOC, +1 file). Test source: 3,495 LOC in 37 files before; 3,744 LOC in 38 files after (+249 LOC, +1 file). Test results: 9 of 9 \texttt{Razorpay\allowbreak{}Payment\allowbreak{}Test} tests passing.
+
+%---------- CH02 ----------
+\subsection*{CH02 --- Category-specific mandatory product attributes}
+
+\textbf{Change and acceptance criteria:} Requirement: enforce additional product-attribute requirements for Electronics products without imposing them on unrelated categories. Acceptance criteria: (1) an Electronics category exists for the default merchant; (2) an Electronics product without a brand, held in the existing manufacturer field, is rejected; (3) an Electronics product without exactly one \texttt{warranty\_period} attribute is rejected; (4) the selected \texttt{warranty\_period} value is accepted only as a whole-number month count from 1 to 120; (5) products of other categories are accepted without these attributes; and (6) the checks run through shared validation on the relevant product and attribute write paths.
+
+\textbf{Before and after:} Before: commit \texttt{9d4f923e83d0658b4935f24ff1bb61692ae720c3} (after CH01). After: commit \texttt{b896f59d4c770e7df7e13fb297757ab86e223607}, ``Require attributes for Electronics products,'' together with the later CH02 commits \texttt{e3db423}, ``Verify seeded Electronics category persistence,'' and \texttt{1c12b97}, ``Refactor Electronics warranty attribute matching.''
+
+In the recorded commit history, \texttt{e3db423} and \texttt{1c12b97} were committed after the CH03 commit \texttt{a555c07}; therefore, the CH02 work is not contiguous in the commit history.
+
+\textbf{Changed source:} \texttt{InitializationDatabaseImpl.\allowbreak{}createElectronicsCategory} seeds the Electronics category and description (\texttt{sm-\allowbreak{}core/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}core/\allowbreak{}business/\allowbreak{}services/\allowbreak{}reference/\allowbreak{}init/\allowbreak{}InitializationDatabaseImpl.\allowbreak{}java}, lines 441--461). \texttt{Electronics\allowbreak{}Product\allowbreak{}Validator} (\texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}validation/\allowbreak{}ElectronicsProductValidator.\allowbreak{}java}, lines 18--76) scopes validation to that category and checks the manufacturer and the \texttt{warranty\_period} attribute. The product write paths are \texttt{Persistable\allowbreak{}Product\allowbreak{}Mapper} (\texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}mapper/\allowbreak{}catalog/\allowbreak{}product/\allowbreak{}PersistableProductMapper.\allowbreak{}java}, lines 243--254) and \texttt{Persistable\allowbreak{}Product\allowbreak{}Definition\allowbreak{}Mapper} (same directory, line 294). The attribute write path is \texttt{Product\allowbreak{}Option\allowbreak{}Facade\allowbreak{}Impl}, lines 310 and 509.
+
+\textbf{Implementation and tests:} The Electronics category is seeded for the default merchant. \texttt{Electronics\allowbreak{}Product\allowbreak{}Validator} requires the manufacturer and exactly one \texttt{warranty\_period} attribute, whose selected value description must be a whole-number month count from 1 to 120. The validator is applied on the product and attribute write paths listed above.
+
+Run commands: The documented focused Maven runs use \texttt{.\allowbreak{}\textbackslash mvnw.\allowbreak{}cmd} with \texttt{-pl sm-shop -am} and \texttt{-\allowbreak{}Dtest=ElectronicsProductValidatorTest}, and \texttt{-pl sm-core -am} and \texttt{-\allowbreak{}Dtest=ProductNextGenTest}, respectively. Actual test results: \texttt{Electronics\allowbreak{}Product\allowbreak{}Validator\allowbreak{}Test} --- 7 of 7 tests passing; \texttt{Product\allowbreak{}Next\allowbreak{}Gen\allowbreak{}Test} (product/category persistence) --- 2 of 2 tests passing. Test evidence is stored under \texttt{evidence/\allowbreak{}design-\allowbreak{}patterns-\allowbreak{}part2/\allowbreak{}}. No full Shop API Electronics product-creation integration test exists, so end-to-end testing of that path is not claimed.
+
+\textbf{Pattern effects:} No pattern instance is introduced or removed. Product Events to Search Indexing is preserved: the existing publishers, published product event classes and \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} remain. The Electronics validation is not a GoF pattern instance and is recorded as an excluded candidate in Section~\ref{sec:counts}.
+
+\textbf{Refactoring:} Genuine refactoring: commit \texttt{1c12b97} in \texttt{Electronics\allowbreak{}Product\allowbreak{}Validator}. Code smell: the \texttt{warranty\_period} matching filter was duplicated. Technique: Extract Method, introducing \texttt{is\allowbreak{}Warranty\allowbreak{}Attribute} at line 60 and reusing one filtered list at lines 46--49 instead of repeating the filter. Behaviour preservation: the evidence document records 7 of 7 validator tests passing before and after the refactoring; however, the retained Surefire report for the validator is the after-state report. The before-state result should be treated as documented evidence rather than independently confirmed by that report. Commits \texttt{b896f59} and \texttt{e3db423} are feature and verification work, respectively, and are not counted as refactoring.
+
+\textbf{Before/after metrics:} Source LOC scope: Java files under \texttt{src/main/java} and \texttt{src/test/java} in \texttt{sm-core-model}, \texttt{sm-core-modules}, \texttt{sm-core}, \texttt{sm-shop-model} and \texttt{sm-shop}, counting code-bearing lines (blank and comment-only lines excluded) with one Python scanner applied to each commit archive. For CH02 (\texttt{b896f59}), main source increased from 72,363 LOC in 1,168 files to 72,511 LOC in 1,169 files (+148 LOC, +1 file). Test source increased from 3,744 LOC in 38 files to 3,834 LOC in 39 files (+90 LOC, +1 file). From \texttt{a555c07} (72,650 main LOC / 4,004 test LOC) to the current committed tree \texttt{6b55bc1582c232aba59945f8a0a3d01e02be9a7c}, which includes \texttt{1c12b97} and \texttt{e3db423}, main source increased by 3 LOC to 72,653 and test source increased by 10 LOC to 4,014, with no change in file counts (1,173 main-source files and 41 test-source files). Test results: 7 of 7 validator tests and 2 of 2 product/category persistence tests passing. The broader \texttt{sm-core} test run and its limitations are discussed in Section~\ref{sec:counts}, Interpretation.
+
+%---------- CH03 ----------
+\subsection*{CH03 --- SMS notifications for order-status changes}
+
+\textbf{Change and acceptance criteria:} Requirement: notify customers when an order transitions to a relevant fulfilment status. Acceptance criteria: (1) a successful, persisted transition to SHIPPED or DELIVERED publishes an event; (2) an unchanged status and any other status publish no event; (3) an asynchronous listener receives the event and delegates delivery to an \texttt{Sms\allowbreak{}Provider} abstraction; (4) the default provider reports that no provider is configured. No SMS vendor adapter or credentials were supplied, so real SMS delivery is not an acceptance criterion and is not claimed.
+
+\textbf{Before and after:} Before: commit \texttt{b896f59d4c770e7df7e13fb297757ab86e223607}. At the baseline \texttt{6a4a0a65a3408ee8f62597b51d1b3aac24b77dee}, \texttt{publish\allowbreak{}Event} was called only for product events and the only application listeners were \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} and \texttt{Server\allowbreak{}Config}, so no order-status event existed. After: \texttt{a555c073e5cb475da0a58feab965469ea46638cb} ``Notify customers of order status transitions''.
+
+\textbf{Changed source:} \texttt{OrderFacadeImpl.\allowbreak{}updateOrderStatus} (\texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}store/\allowbreak{}controller/\allowbreak{}order/\allowbreak{}facade/\allowbreak{}OrderFacadeImpl.\allowbreak{}java:1630-\allowbreak{}-\allowbreak{}1655}); \texttt{Order\allowbreak{}Status\allowbreak{}Changed\allowbreak{}Event} (\texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}store/\allowbreak{}controller/\allowbreak{}order/\allowbreak{}events/\allowbreak{}OrderStatusChangedEvent.\allowbreak{}java:10,19}); \texttt{Order\allowbreak{}Status\allowbreak{}Sms\allowbreak{}Listener} (\texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}store/\allowbreak{}controller/\allowbreak{}order/\allowbreak{}listeners/\allowbreak{}OrderStatusSmsListener.\allowbreak{}java:22,36-\allowbreak{}-\allowbreak{}67}); \texttt{Sms\allowbreak{}Provider} (\texttt{sm-\allowbreak{}shop/\allowbreak{}src/\allowbreak{}main/\allowbreak{}java/\allowbreak{}com/\allowbreak{}salesmanager/\allowbreak{}shop/\allowbreak{}notification/\allowbreak{}sms/\allowbreak{}SmsProvider.\allowbreak{}java:3,5}) and \texttt{Unconfigured\allowbreak{}Sms\allowbreak{}Provider} (same directory, lines 5, 8).
+
+\textbf{Implementation and tests:} What changed: \texttt{update\allowbreak{}Order\allowbreak{}Status} returns early if the status is unchanged, persists the history through \texttt{add\allowbreak{}Order\allowbreak{}Status\allowbreak{}History}, and then publishes \texttt{Order\allowbreak{}Status\allowbreak{}Changed\allowbreak{}Event} only for SHIPPED or DELIVERED. \texttt{Order\allowbreak{}Status\allowbreak{}Sms\allowbreak{}Listener} is asynchronous; it filters the statuses, selects a phone number and delegates sending to \texttt{Sms\allowbreak{}Provider}. The only production implementation, \texttt{Unconfigured\allowbreak{}Sms\allowbreak{}Provider}, reports that no provider is configured.
+
+Actual test results: listener tests 6 of 6 and order-status transition tests 2 of 2 passing, 8 of 8 in the documented command. The tests use a mock provider; there is no SMS vendor adapter and no evidence of real message delivery, which is not claimed. Test evidence is stored under \texttt{evidence/\allowbreak{}design-\allowbreak{}patterns-\allowbreak{}part2/\allowbreak{}}.
+
+\textbf{Pattern effects:} Order Status SMS Notification --- newly introduced: Observer, GoF behavioural pattern realised with Spring application events. Five participant occurrences: \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} (publisher, reused from the Facade instance), \texttt{Order\allowbreak{}Status\allowbreak{}Changed\allowbreak{}Event}, \texttt{Order\allowbreak{}Status\allowbreak{}Sms\allowbreak{}Listener}, \texttt{Sms\allowbreak{}Provider} and \texttt{Unconfigured\allowbreak{}Sms\allowbreak{}Provider}; four are new symbols. It is a separate collaboration from Product Events to Search Indexing. Order Processing Coordination --- modified: \texttt{OrderFacadeImpl.\allowbreak{}updateOrderStatus} now publishes the event after successful persistence for the two SMS statuses, while the status-equality check and the Facade role are retained.
+
+\textbf{Refactoring:} None. CH03 is a feature addition.
+
+\textbf{Before/after metrics:} Source LOC scope: Java files under \texttt{src/main/java} and \texttt{src/test/java} in \texttt{sm-core-model}, \texttt{sm-core-modules}, \texttt{sm-core}, \texttt{sm-shop-model} and \texttt{sm-shop}, counting code-bearing lines (blank and comment-only lines excluded) with one Python scanner applied to each commit archive. Main source: 72,511 LOC in 1,169 files before; 72,650 LOC in 1,173 files after (+139 LOC, +4 files). Test source: 3,834 LOC in 39 files before; 4,004 LOC in 41 files after (+170 LOC, +2 files). Test results: 6 of 6 and 2 of 2 passing; no real SMS delivery is claimed.
+
+%---------- 3.1 ----------
+\subsection{Updated pattern counts}\label{sec:counts}
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{3.0cm}P{1.2cm}P{1.5cm}P{1.8cm}P{1.8cm}P{2.6cm}P{3.0cm}@{}}
+\toprule
+\textbf{Snapshot (commit)} & \textbf{Pattern types} & \textbf{Instances} & \textbf{Participant occurrences} & \textbf{Unique symbols} & \textbf{Main / test LOC} & \textbf{Rejected / uncertain}\\
+\midrule
+\endhead
+Original (6a4a0a6) & 5 & 6 & 41 & 41 & 72,018 / 3,495 & ---\\
+After CH01 (9d4f923) & 5 & 6 & 42 & 42 & 72,363 / 3,744 & ---\\
+After CH02 (b896f59) & 5 & 6 & 42 & 42 & 72,511 / 3,834 & ---\\
+After CH03 (a555c07) & 5 & 7 & 47 & 46 & 72,650 / 4,004 & ---\\
+Current tree (6b55bc1) & 5 & 7 & 47 & 46 & 72,653 / 4,014 & 5 excluded; 1 additional Singleton candidate\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Counting method:} A participant is a source class or interface that performs a stated role in one of the seven collaborations. Classes and their role interfaces are counted separately. A type that performs roles in multiple instances is counted once per instance in participant occurrences and once in the unique-symbol total. Methods, enums, Spring framework types and helper or action collaborators outside the defined collaboration are excluded.
+
+The original snapshot contains 41 participant occurrences and 41 unique fully qualified symbols, consistent with the Part 1 pattern inventory. Razorpay adds one participant occurrence and one unique symbol to the Payment Module Selection Strategy, increasing its participant count from 8 to 9. CH02 adds no new GoF pattern instance. CH03 introduces the Order Status SMS Notification Observer instance, adding five participant occurrences, four of which are new symbols because \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} is reused as the publisher. Consequently, the number of pattern instances increases from six to seven, while the number of pattern types remains five.
+
+The participant counts are based on the defined collaborations and must use the same scope as the Part 1 inventory. \texttt{Payment\allowbreak{}Service\allowbreak{}Impl} and \texttt{Shipping\allowbreak{}Service\allowbreak{}Impl} should not be counted as Facade participants solely because they exist in the application; their inclusion requires evidence that they participate in the specific Order Processing Coordination collaboration being counted.
+
+\texttt{Sms\allowbreak{}Provider} is counted as a participant because the SMS listener delegates message delivery through this abstraction. \texttt{Pay\allowbreak{}Pal\allowbreak{}Rest\allowbreak{}Payment} is excluded from the Payment Module Selection Strategy because it is not present in the registration map and has no other references.
+
+Rejected and uncertain observations in the current tree include \texttt{Product\allowbreak{}Attribute\allowbreak{}Event} (declared but not published in the examined product flow), the history-only order-status API (not a status transition), existing e-mail notification (not SMS), Electronics validation (not a GoF pattern instance), and \texttt{Pay\allowbreak{}Pal\allowbreak{}Rest\allowbreak{}Payment} (an unregistered Strategy candidate).
+
+\textbf{Additional Singleton candidate:} One additional candidate lies outside the seven named instances: \texttt{com.\allowbreak{}salesmanager.\allowbreak{}core.\allowbreak{}business.\allowbreak{}modules.\allowbreak{}cms.\allowbreak{}product.\allowbreak{}infinispan.\allowbreak{}CmsImageFileManagerImpl}. It exhibits Singleton structure through a static instance, a lazy accessor and a private constructor. It is excluded from the reported totals because it is outside the seven defined pattern instances. If included as an eighth instance, each snapshot would increase by one participant occurrence and one unique symbol.
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{4.0cm}P{2.6cm}P{9.5cm}@{}}
+\toprule
+\textbf{Instance name} & \textbf{Effect} & \textbf{Reason}\\
+\midrule
+\endhead
+Payment Module Selection & Extended & \texttt{Razorpay\allowbreak{}Payment} and the \texttt{razorpay} map entry are added; the six existing registered providers and the selector remain.\\
+Shipping Quote Module Selection & Preserved & \texttt{Shipping\allowbreak{}Service\allowbreak{}Impl}, the \texttt{Shipping\allowbreak{}Quote\allowbreak{}Module} contract, the six implementations and their registrations are unchanged.\\
+Product Events to Search Indexing & Preserved & The existing publishers, published product event classes and \texttt{Index\allowbreak{}Product\allowbreak{}Event\allowbreak{}Listener} remain; the SMS collaboration uses a separate event and listener.\\
+Order Processing Coordination & Modified & \texttt{OrderFacadeImpl.\allowbreak{}updateOrderStatus} publishes an event after successful persistence for SHIPPED and DELIVERED; the status-equality check and the Facade role remain.\\
+Security Group Construction & Preserved & \texttt{create\allowbreak{}Security\allowbreak{}Groups} continues to use \texttt{Security\allowbreak{}Groups\allowbreak{}Builder} to build \texttt{Group} and \texttt{Permission} instances.\\
+CMS Product Image File Manager & Preserved & The static instance, lazy accessor and private constructor of the local implementation are unchanged.\\
+Order Status SMS Notification & Newly introduced & \texttt{Order\allowbreak{}Facade\allowbreak{}Impl} publishes \texttt{Order\allowbreak{}Status\allowbreak{}Changed\allowbreak{}Event}; \texttt{Order\allowbreak{}Status\allowbreak{}Sms\allowbreak{}Listener} filters the statuses and delegates through \texttt{Sms\allowbreak{}Provider}.\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Interpretation:} Benefits: the payment Strategy accepted a new provider by extension, which is the intended use of the \texttt{Payment\allowbreak{}Module} abstraction; the Observer approach allowed order-status notification to be added with a single event publication in the Facade rather than a direct SMS call; the Electronics rules remained confined to a validator applied on the product and attribute write paths. Trade-offs: the Facade is modified and now also acts as an event publisher; the asynchronous listener means delivery failures do not reach the order transition; with the default provider no SMS is sent. The additional lines of source in each change, and the extra test code, do not by themselves show a better design.
+
+\textbf{Remaining limitations:} no live Razorpay transaction and no real SMS delivery were performed or are claimed, and no full shop-API Electronics product-creation integration test exists. The focused tests pass: 26 in total across Razorpay (9), Electronics validation (7), SMS listener (6), order-status transition (2) and category persistence (2). The comparable full core-reactor run had one \texttt{Product\allowbreak{}Test} \texttt{Unexpected\allowbreak{}Rollback\allowbreak{}Exception} and 13 skipped tests in both snapshots, and the current Surefire report for \texttt{Product\allowbreak{}Test} also records one error (\texttt{test\allowbreak{}Create\allowbreak{}Product} and \texttt{test\allowbreak{}Insert\allowbreak{}Image}). The underlying diagnostic was \texttt{java.\allowbreak{}lang.\allowbreak{}UnsupportedOperationException: getSubject is not supported}, raised from \texttt{javax.\allowbreak{}security.\allowbreak{}auth.\allowbreak{}Subject.\allowbreak{}getSubject()} inside Infinispan 9.4.18.Final during CMS cache-manager initialisation, which prevented product-image persistence. The recorded runs used JDK 25, whereas the POM targets Java 11 and Spring Boot 2.5.12; this is therefore a testing-environment limitation. No Java 11 run has been executed, so no Java 11 result is claimed, the full suite is not claimed to pass, and the failure is not evidence of a defect in the Part 2 code.
+
+%====================== 4 ======================
+\section{Part 3 Cross-language comparison}
+
+\textbf{Selected instances:} Two representative instances were selected from the Shopizer case study: (1) Strategy --- Payment Module Selection, and (2) Observer --- Order Status SMS Notification. Payment Module Selection was selected because it demonstrates interchangeable payment implementations selected through a shared contract. Order Status SMS Notification was selected because it demonstrates event publication and listener-based notification added during Part 2. Both are implemented as small, standalone examples in Java, Python, JavaScript and C++.
+
+\textbf{Common specifications:} The same intended behaviours were used across the four language implementations. For Strategy, the implementation supports runtime selection of payment methods, Card and UPI strategies, case-insensitive provider selection, validation of requests, rejection of invalid inputs, duplicate-registration/selection handling where applicable, and extension with additional strategies. For Observer, the publisher announces relevant order-status transitions; observers can respond to SHIPPED and DELIVERED, SMS notification is separated from order processing, an audit observer can coexist with the SMS observer, and missing phone numbers or unavailable SMS-provider functionality are handled without requiring real SMS delivery. The implementations are standalone demonstrations and do not integrate with a live payment gateway or SMS vendor.
+
+\textbf{Inputs, outputs and error cases:} Inputs include payment-method/provider identifiers and payment request data for Strategy, and order-status transition/event data for Observer. Outputs are the selected payment operation/result or observable notification/audit/provider behaviour. Invalid or unsupported payment selections and invalid requests are rejected; irrelevant or unchanged order statuses should not trigger the SMS notification path. The verification notes describe shared expected behaviour, but a separate machine-readable common-fixture file was not identified in the supplied evidence.
+
+\textbf{Implementations:} Source files and test files are located under \texttt{A9/A9/Part3/} in \texttt{Final\_\allowbreak{}Implementation.\allowbreak{}zip}. The README files record the development environments as Java 26, Python 3.14.3, Node.js 24.13.0, and GCC 13.3.0 with C++17 (Ubuntu 24.04 under WSL 2). Run each command from the corresponding language folder shown in the table. The implementations are standalone pattern demonstrations, not production integrations with Shopizer.
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{1.9cm}P{1.5cm}P{4.4cm}P{5.6cm}P{2.6cm}@{}}
+\toprule
+\textbf{Pattern} & \textbf{Language} & \textbf{Source and test files (relative to \texttt{A9/A9/Part3/})} & \textbf{Test command} & \textbf{README-recorded environment}\\
+\midrule
+\endhead
+Strategy --- Payment Module Selection & Java & \texttt{Strategy\_\allowbreak{}Payment/\allowbreak{}java/\allowbreak{}PaymentStrategy.\allowbreak{}java}; \texttt{TestPaymentStrategy.\allowbreak{}java} & \texttt{javac PaymentStrategy.\allowbreak{}java TestPaymentStrategy.\allowbreak{}java; java -\allowbreak{}ea TestPaymentStrategy} & JDK 26\\
+Strategy --- Payment Module Selection & Python & \texttt{Strategy\_\allowbreak{}Payment/\allowbreak{}python/\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}py}; \texttt{test\_\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}py} & \texttt{python -\allowbreak{}m unittest -\allowbreak{}v test\_\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}py} & Python 3.14.3\\
+Strategy --- Payment Module Selection & JavaScript & \texttt{Strategy\_\allowbreak{}Payment/\allowbreak{}javascript/\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}js}; \texttt{test\_\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}js} & \texttt{node -\allowbreak{}-\allowbreak{}test test\_\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}js} & Node.js 24.13.0\\
+Strategy --- Payment Module Selection & C++ & \texttt{Strategy\_\allowbreak{}Payment/\allowbreak{}cpp/\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}cpp}; \texttt{test\_\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}cpp} & \texttt{g++ -\allowbreak{}std=c++17 -\allowbreak{}Wall -\allowbreak{}Wextra -\allowbreak{}pedantic test\_\allowbreak{}payment\_\allowbreak{}strategy.\allowbreak{}cpp -\allowbreak{}o test\_\allowbreak{}payment\_\allowbreak{}strategy; .\allowbreak{}/\allowbreak{}test\_\allowbreak{}payment\_\allowbreak{}strategy} & GCC 13.3.0; C++17; Ubuntu 24.04/WSL 2\\
+\midrule
+Observer --- Order Status SMS Notification & Java & \texttt{Observer\_\allowbreak{}Order\_\allowbreak{}SMS/\allowbreak{}java/\allowbreak{}OrderStatusObserver.\allowbreak{}java}; \texttt{TestOrderStatusObserver.\allowbreak{}java} & \texttt{New-\allowbreak{}Item -\allowbreak{}ItemType Directory -\allowbreak{}Force build | Out-\allowbreak{}Null; javac -\allowbreak{}d build OrderStatusObserver.\allowbreak{}java TestOrderStatusObserver.\allowbreak{}java; java -\allowbreak{}ea -\allowbreak{}cp build A9.\allowbreak{}Part3.\allowbreak{}Observer\_\allowbreak{}Order\_\allowbreak{}SMS.\allowbreak{}java.\allowbreak{}TestOrderStatusObserver} & JDK 26\\
+Observer --- Order Status SMS Notification & Python & \texttt{Observer\_\allowbreak{}Order\_\allowbreak{}SMS/\allowbreak{}python/\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}py}; \texttt{test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}py} & \texttt{python -\allowbreak{}m unittest -\allowbreak{}v test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}py} & Python 3.14.3\\
+Observer --- Order Status SMS Notification & JavaScript & \texttt{Observer\_\allowbreak{}Order\_\allowbreak{}SMS/\allowbreak{}javascript/\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}js}; \texttt{test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}js} & \texttt{node -\allowbreak{}-\allowbreak{}test test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}js} & Node.js 24.13.0\\
+Observer --- Order Status SMS Notification & C++ & \texttt{Observer\_\allowbreak{}Order\_\allowbreak{}SMS/\allowbreak{}cpp/\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}cpp}; \texttt{test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}cpp} & \texttt{g++ -\allowbreak{}std=c++17 -\allowbreak{}Wall -\allowbreak{}Wextra -\allowbreak{}pedantic test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer.\allowbreak{}cpp -\allowbreak{}o test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer; .\allowbreak{}/\allowbreak{}test\_\allowbreak{}order\_\allowbreak{}status\_\allowbreak{}observer} & GCC 13.3.0; C++17; Ubuntu 24.04/WSL 2\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Actual results:} I independently compiled/executed the eight test suites from \texttt{Final\_\allowbreak{}Implementation.\allowbreak{}zip} in the current audit environment. All eight suites passed 10/10 tests each (80/80 total). Audit environment: OpenJDK 21.0.12.1, Python 3.13.5, Node.js 22.16.0, and GCC 14.2.0 using C++17. These are the versions available for this audit, not the README-recorded development versions. The README files separately report the original development results; saved terminal output should be retained with the submission.
+
+\begin{center}
+\tsmall
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Pattern} & \textbf{Java} & \textbf{Python} & \textbf{JavaScript} & \textbf{C++} & \textbf{Total}\\
+\midrule
+Strategy --- Payment Module Selection & 10/10 & 10/10 & 10/10 & 10/10 & 40/40\\
+Observer --- Order Status SMS Notification & 10/10 & 10/10 & 10/10 & 10/10 & 40/40\\
+\midrule
+\textbf{Total} & 20/20 & 20/20 & 20/20 & 20/20 & 80/80\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Static comparison --- production LOC:} Production LOC is recorded as non-blank, non-comment source lines. Test code is counted separately. Python has the lowest combined production LOC in this dataset (231), followed by C++ (268), JavaScript (308), and Java (335). LOC measures implementation size under the recorded counting rule; it does not by itself establish maintainability, performance or design quality.
+
+\begin{center}
+\tsmall
+\begin{tabular}{@{}l*{6}{>{\raggedleft\arraybackslash}p{2.1cm}}@{}}
+\toprule
+\textbf{Language} & \textbf{Strategy LOC} & \textbf{Observer LOC} & \textbf{Combined prod.\ LOC} & \textbf{Strategy test LOC} & \textbf{Observer test LOC} & \textbf{Combined test LOC}\\
+\midrule
+Python & 80 & 151 & 231 & 75 & 141 & 216\\
+C++ & 98 & 170 & 268 & 61 & 84 & 145\\
+JavaScript & 107 & 201 & 308 & 107 & 158 & 265\\
+Java & 101 & 234 & 335 & 143 & 137 & 280\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Static comparison --- language structure:} Java uses explicit interfaces and class-based abstractions, a Map-based registry, records for event/result values, enums for status values, and garbage-collected object lifecycle management. Python uses abstract base classes, dictionaries, frozen dataclasses and enums, with a concise multi-paradigm syntax. JavaScript uses ES6 classes, Map-based lookup and runtime errors for unimplemented methods; its runtime is Node.js/V8. C++ uses abstract classes with pure virtual methods, \texttt{unordered\_map}-based lookup, scoped enums, and explicit ownership tools such as \texttt{std::unique\_ptr} and RAII. The workbook also records defensive snapshots of observer collections during dispatch in all four languages.
+
+\textbf{Dynamic comparison and complexity:} The workbook and README files do not provide measured maximum function cyclomatic complexity or median process runtime. These remain not recorded; they must not be estimated from LOC or test results. Test execution was independently repeated for this document, but the audit run used different runtime/compiler versions from those listed in the README files.
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{6.4cm}P{9.5cm}@{}}
+\toprule
+\textbf{Required measure} & \textbf{Recorded status}\\
+\midrule
+\endhead
+Maximum function cyclomatic complexity per implementation & Not recorded in supplied evidence\\
+Median process runtime per implementation & Not recorded in supplied evidence\\
+Exact run command and terminal log path for each suite & Not included in supplied summary; attach actual logs/README commands\\
+Production LOC & Recorded in \texttt{cross\_\allowbreak{}language\_\allowbreak{}comparison.\allowbreak{}xlsx}; see table above\\
+Test result & Recorded as 10/10 for each suite; total 80/80\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Comparison:} The core pattern structures remain consistent across languages: Strategy separates selection from provider-specific payment behaviour through a shared abstraction; Observer separates event publication from the listeners that react to order-status changes. Language-specific syntax changes the form of the abstraction and lifecycle handling, but not the intended collaboration. Java's interfaces and explicit types make contracts visible; Python's ABCs and dataclasses reduce boilerplate; JavaScript relies more on runtime checks; C++ exposes more explicit ownership and dispatch mechanics. The implementations are illustrative, standalone equivalents rather than a direct port of Shopizer's Spring components.
+
+\textbf{Technology discussion:} The comparison illustrates the distinction between design-pattern intent and language mechanism. Strategy relies on composition and polymorphic dispatch, while Observer relies on a publisher/listener relationship and decoupled event handling. Java interfaces, Python abstract base classes, JavaScript classes and C++ pure virtual classes can express similar contracts, although their type checking and lifecycle guarantees differ. The workbook's code-size figures show that equivalent pattern behaviour does not require identical source size. Runtime performance conclusions cannot be drawn because median timing data was not supplied.
+
+\textbf{Shopizer evolution context:} The separate Shopizer metrics in the workbook report six confirmed pattern instances at baseline and seven after Part 2, while the number of distinct pattern types remains five. The additional instance is Order Status SMS Notification (Observer); Razorpay extends the existing Payment Module Selection Strategy, and Electronics validation adds no GoF pattern instance. The workbook reports +726 physical production Java lines and +613 physical test Java lines between its baseline and evolved Shopizer snapshots. These physical-line metrics are a separate measurement from the non-blank/non-comment LOC used for the four-language implementations.
+
+%====================== 5 ======================
+\section{LLM records and human verification}
+
+\textbf{Run and model:} ChatGPT 6, as recorded by the user. The exact access tier, individual run timestamps/date-and-time, and displayed model label for each prompt were not supplied. This section records the prompts provided by the user; it does not claim that every intermediate response is independently archived here.
+
+\textbf{Inputs and outputs:} Inputs included the Shopizer repository (\url{https://github.com/shopizer-ecommerce/shopizer.git}), tag/version label 3.2.7, supplied Shopizer source archives, Part 1 and Part 2 report drafts/templates, the final implementation ZIP, and the \texttt{cross\_\allowbreak{}language\_\allowbreak{}comparison.\allowbreak{}xlsx} workbook. Relevant baseline commit recorded in the Part 1 report: \texttt{6a4a0a65a3408ee8f62597b51d1b3aac24b77dee}. Outputs included repository recommendations, source inspection/report drafts, cross-language code and tests, run instructions, and verification notes. Exact input/output files should be linked to the team's \texttt{Part3/llm} and evidence folders.
+
+\subsection*{Exact prompts supplied for the major analyses}
+
+\textbf{Prompt 1 --- Finding a repository}
+\begin{quote}\small
+I am doing a university case study titled ``Design Pattern Identification and Evolution in a Spring Boot-Based E-Commerce Application.'' Find an open-source e-commerce application developed using Spring Boot. It should have accessible source code and features such as product management, cart, orders, payments, inventory, customers, notifications, and authentication. Compare suitable repositories against these requirements and recommend the best one. Support the recommendation with repository links and source evidence.
+\end{quote}
+
+\textbf{Prompt 2 --- Checking whether Part 2 changes already exist}
+\begin{quote}\small
+Inspect the supplied Shopizer source before I modify it. The repository is \url{https://github.com/shopizer-ecommerce/shopizer.git}, using tag/version label 3.2.7. Check whether these requirements are already implemented:
+\begin{enumerate}[nosep]
+  \item Add Razorpay as a payment method.
+  \item Require category-specific product attributes, such as a warranty for Electronics.
+  \item Send SMS notifications when an order's status changes.
+\end{enumerate}
+\end{quote}
+
+\textbf{Prompt 3 --- Making the Part 1 report}
+\begin{quote}\small
+I have attached my Part 1 report draft, the required template, and the shopizer zip. Correct the report so that the application description, architecture, design patterns, class names, source paths, tables, and evidence match the actual project code. Follow the provided template and preserve correct content. Do not invent missing details or state a pattern not present. Give the correct document.
+\end{quote}
+
+\textbf{Prompt 4 --- Making the Part 2 report}
+\begin{quote}\small
+Part 1 is complete, now help me with part 2 using this template, findings, and Shopizer zip. The three changes are Razorpay payment integration, mandatory Electronics product-attribute validation, and SMS notification for order-status changes. For each, explain the requirement, existing design, proposed change, affected components, and impact on relevant patterns. Classify each pattern as preserved, modified, extended, replaced, or removed, with a reason supported by code evidence. Continue page numbering after page 8 and do not repeat part 1.
+\end{quote}
+
+\textbf{Prompt 5 --- Choosing the two patterns for Part 3}
+\begin{quote}\small
+Part 3 -- Cross-Language Analysis\\
+Select 2 significant patterns discovered in Parts 1--2.\\
+Implement the same problem using:
+\begin{itemize}[nosep]
+  \item Java
+  \item Python
+  \item JavaScript
+  \item C++
+\end{itemize}
+Proceeded with the recommended pattern.
+\end{quote}
+
+\textbf{Prompt 6 --- Starting Python implementations}
+\begin{quote}\small
+Lets start with the Python implementation in VSCode. First define the expected behavior and test cases for both patterns so that we can implement the same functionality in JavaScript, Java and C++ later.
+\end{quote}
+
+\textbf{Prompt 7 --- JavaScript implementation}
+\begin{quote}\small
+Now, implement the same payment strategy and order status observer problems in JavaScript. Follow the requirements and Python test cases so that the behaviour remains consistent across languages. Include tests for the same cases and provide the commands needed to run them.
+\end{quote}
+
+\textbf{Prompt 8 --- Java implementation}
+\begin{quote}\small
+After making the UML diagram, implement the same payment strategy and order status observer problems in Java. Include the test files and exact compilation and execution commands.
+\end{quote}
+
+\textbf{Prompt 9 --- C++ implementation}
+\begin{quote}\small
+Now, implement the same payment strategy and order status observer problems in C++. Also provide the commands to run it.
+\end{quote}
+
+\textbf{Prompt 10 --- Verification of all four languages}
+\begin{quote}\small
+Inspect the final implementation zip and audit both strategy payment module selection and observer order status SMS notification across Java, Python, JavaScript and C++. Check all the documents and verify the correctness.
+\end{quote}
+
+\subsection*{Claims and evaluation}
+
+\textbf{Verification procedure:} The final implementation ZIP was inspected for source files, tests, folder structure and README instructions. The Strategy implementation was reviewed for a common payment contract, interchangeable implementations and selection behaviour. The Observer implementation was reviewed for event publication, observer/listener notification, status filtering and SMS-provider delegation. The recorded test results and production LOC were checked against the supplied summary/counting information, and documentation was reviewed for unsupported claims and command inconsistencies.
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{3.6cm}P{3.6cm}P{8.9cm}@{}}
+\toprule
+\textbf{Claim / area} & \textbf{Evaluation} & \textbf{Evidence and qualification}\\
+\midrule
+\endhead
+Strategy pattern structure in four languages & Supported by recorded manual review and test summary & Common abstraction and interchangeable Card/UPI strategies; exact source-level line references should be linked to the implementation ZIP.\\
+Observer pattern structure in four languages & Supported by recorded manual review and test summary & Publisher/listener separation, SHIPPED/DELIVERED filtering, SMS and audit observers, provider abstraction.\\
+Test outcomes & Recorded as passed & Eight suites $\times$ 10 tests = 80/80; retain terminal outputs for independent audit.\\
+Production LOC & Recorded in workbook & Counting excludes blank and comment-only lines; source/test LOC are separated.\\
+Real payment/SMS integration & Not established & No live Razorpay transaction or actual SMS delivery is claimed.\\
+Complexity and median runtime & Cannot confirm from supplied evidence & Numeric cyclomatic-complexity and median-process-time measurements were not provided.\\
+Exact run commands / per-run timestamps / access tier & Not fully documented in supplied summary & Insert only from actual README, terminal history and tool display; do not reconstruct from memory.\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{Human verification conclusion:} The independent audit run confirms that all eight standalone test suites compile/execute successfully in the audit environment, with 80/80 tests passing. This supports the tested functional cases, but does not prove integration with Shopizer's live payment infrastructure or an SMS vendor, nor does it establish performance superiority.
+
+\subsection*{Generated code and how it was tested}
+
+\textbf{Generated code used:} The code retained for this exercise implements Strategy --- Payment Module Selection and Observer --- Order Status SMS Notification in Java, Python, JavaScript and C++. The supplied verification notes report that the test suites were run separately for each pattern and language. Strategy tests cover selection, request validation and invalid input cases; Observer tests cover event registration/dispatch, relevant statuses, observer separation, and unavailable SMS-provider or missing-phone-number cases where implemented. The tests use local/mock behaviour and do not send actual SMS messages or perform real payment transactions.
+
+%====================== 6 ======================
+\section{Findings, contributions and references}
+
+\subsection*{Findings}
+\begin{itemize}
+  \item The Strategy and Observer patterns were implemented in four languages with the same stated problem behaviour and 10 reported tests per implementation, for 80/80 reported passing tests overall.
+  \item Production LOC differs across languages: Python 231 combined LOC, C++ 268, JavaScript 308 and Java 335. These values reflect the supplied counting method and do not alone measure code quality.
+  \item Java uses explicit interfaces and strongly structured class contracts; Python uses ABCs and dataclasses; JavaScript expresses contracts more dynamically; C++ uses pure virtual classes and explicit resource ownership mechanisms.
+  \item The Observer example separates order-status event publication from SMS and audit reactions. It uses a provider abstraction and does not claim actual SMS delivery.
+  \item The Strategy example demonstrates runtime selection of payment behaviour and extension through additional strategies. It does not demonstrate a live payment-gateway transaction.
+  \item The Part 2 Shopizer changes increased the recorded confirmed pattern instances from six to seven while retaining five distinct pattern types. Razorpay extended the existing Strategy collaboration; the order-status SMS Observer was newly introduced; Electronics validation was not classified as a GoF pattern.
+  \item The supplied evidence does not include numeric cyclomatic-complexity or median process-time results. These are limitations of the current comparison and should not be inferred from LOC or test pass rates.
+\end{itemize}
+
+\subsection*{Contributions}
+
+\textbf{Contribution record:} The following team roster is copied from the Part 1 report. The precise task allocation for Part 3 must be recorded according to the work actually completed by each member; the information supplied for this document does not provide verified roll-number-level allocations for every Part 3 activity.
+
+\begingroup\tsmall
+\begin{longtable}{@{}P{3.0cm}P{2.6cm}P{1.6cm}P{8.9cm}@{}}
+\toprule
+\textbf{Roll number} & \textbf{Student name} & \textbf{Batch} & \textbf{Contribution}\\
+\midrule
+\endhead
+AM.SC.U4CSE23003 & Abhijith S & CSE - A & Responsible for the JavaScript implementation of the Strategy and Observer design patterns. Developed both examples, prepared and executed the corresponding test suites, maintained relevant LLM prompt and output records, and contributed JavaScript-specific measurements, implementation verification, and consistency checks to the cross-language comparison and final report.\\
+AM.SC.U4CSE23005 & Abhinav G Nair & CSE - A & Responsible for the C++ implementation of the Strategy and Observer design patterns. Developed both examples, prepared and executed the corresponding test suites, documented the implementation structure and compilation instructions, and contributed C++-specific measurements and verification evidence to the cross-language comparison.\\
+AM.SC.U4CSE23042 & Jithin Jyothi & CSE - A & Responsible for the Java implementation of the Strategy and Observer design patterns. Developed the payment-strategy and order-status notification examples, prepared and executed the corresponding test suites, documented the implementation structure and execution instructions, and contributed Java-specific measurements and verification evidence to the cross-language comparison.\\
+AM.SC.U4CSE23044 & Krishnapriya P & CSE - A & Responsible for the Python implementation of the Strategy and Observer design patterns. Developed both examples, prepared and executed the corresponding test suites, documented the implementation structure and execution instructions, and contributed Python-specific measurements and verification evidence to the cross-language comparison.\\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\subsection*{References}
+\begin{enumerate}[nosep]
+  \item Shopizer source repository, tag/version 3.2.7. \url{https://github.com/shopizer-ecommerce/shopizer.git}. Baseline commit recorded in Part 1: \texttt{6a4a0a65a3408ee8f62597b51d1b3aac24b77dee}.
+  \item Gamma, E., Helm, R., Johnson, R., and Vlissides, J. \textit{Design Patterns: Elements of Reusable Object-Oriented Software}. Addison-Wesley, 1994. (Strategy and Observer pattern definitions.)
+  \item Oracle. Java documentation. \url{https://docs.oracle.com/en/java/}
+  \item Python Software Foundation. Python documentation, including abc and dataclasses. \url{https://docs.python.org/3/}
+  \item OpenJS Foundation / Node.js. Node.js documentation. \url{https://nodejs.org/docs/}
+  \item ISO C++ / cppreference. C++ language and library reference. \url{https://en.cppreference.com/w/}
+  \item Supplied project artifact: \texttt{cross\_\allowbreak{}language\_\allowbreak{}comparison.\allowbreak{}xlsx} (Language Overview, Pattern Breakdown, Feature Comparison Matrix, Shopizer Evolution Metrics).
+  \item Supplied project artifact: Human Verification notes and final implementation ZIP/test evidence. Link to the exact team repository paths in the final submission.
+\end{enumerate}
+
+\end{document}
